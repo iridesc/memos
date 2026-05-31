@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.1](https://github.com/usememos/memos/compare/v0.29.0...v0.29.1) (2026-05-31)
+
+
+### Bug Fixes
+
+* **markdown:** keep task item content in one grid column ([7c3bff4](https://github.com/usememos/memos/commit/7c3bff4e98223fb99a5d49f093e3cd57dd140ba4))
+
 ## [0.29.0](https://github.com/usememos/memos/compare/v0.28.0...v0.29.0) (2026-05-27)
 
 
