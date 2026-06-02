@@ -37,6 +37,16 @@ func (d *DB) CreateMemo(ctx context.Context, create *store.Memo) (*store.Memo, e
 		placeholder = append(placeholder, "?")
 		args = append(args, create.UpdatedTs)
 	}
+	if create.PlanStartTs != nil {
+		fields = append(fields, "`plan_start_ts`")
+		placeholder = append(placeholder, "?")
+		args = append(args, *create.PlanStartTs)
+	}
+	if create.PlanEndTs != nil {
+		fields = append(fields, "`plan_end_ts`")
+		placeholder = append(placeholder, "?")
+		args = append(args, *create.PlanEndTs)
+	}
 
 	stmt := "INSERT INTO `memo` (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(placeholder, ", ") + ") RETURNING `id`, `created_ts`, `updated_ts`, `row_status`"
 	if err := d.db.QueryRowContext(ctx, stmt, args...).Scan(
@@ -113,7 +123,11 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 	if find.OrderByPinned {
 		orderBy = append(orderBy, "`pinned` DESC")
 	}
-	if find.OrderByUpdatedTs {
+	if find.OrderByPlanStart {
+		orderBy = append(orderBy, "`plan_start_ts` "+order)
+	} else if find.OrderByPlanEnd {
+		orderBy = append(orderBy, "`plan_end_ts` "+order)
+	} else if find.OrderByUpdatedTs {
 		orderBy = append(orderBy, "`updated_ts` "+order)
 	} else {
 		orderBy = append(orderBy, "`created_ts` "+order)
@@ -126,6 +140,8 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 		"`memo`.`creator_id` AS `creator_id`",
 		"`memo`.`created_ts` AS `created_ts`",
 		"`memo`.`updated_ts` AS `updated_ts`",
+			"`memo`.`plan_start_ts` AS `plan_start_ts`",
+			"`memo`.`plan_end_ts` AS `plan_end_ts`",
 		"`memo`.`row_status` AS `row_status`",
 		"`memo`.`visibility` AS `visibility`",
 		"`memo`.`pinned` AS `pinned`",
@@ -165,6 +181,8 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 			&memo.CreatorID,
 			&memo.CreatedTs,
 			&memo.UpdatedTs,
+				&memo.PlanStartTs,
+				&memo.PlanEndTs,
 			&memo.RowStatus,
 			&memo.Visibility,
 			&memo.Pinned,
@@ -212,6 +230,13 @@ func (d *DB) UpdateMemo(ctx context.Context, update *store.UpdateMemo) error {
 	if v := update.Visibility; v != nil {
 		set, args = append(set, "`visibility` = ?"), append(args, *v)
 	}
+		if v := update.PlanEndTs; v != nil {
+			set, args = append(set, "`plan_end_ts` = ?"), append(args, *v)
+		}
+		if v := update.PlanStartTs; v != nil {
+			set, args = append(set, "`plan_start_ts` = ?"), append(args, *v)
+		}
+
 	if v := update.Pinned; v != nil {
 		set, args = append(set, "`pinned` = ?"), append(args, *v)
 	}

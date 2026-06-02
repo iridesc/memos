@@ -114,6 +114,12 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 	if request.Memo.Location != nil {
 		create.Payload.Location = convertLocationToStore(request.Memo.Location)
 	}
+	if request.Memo.PlanStartTime != nil {
+		create.PlanStartTs = convertTimestampToStore(request.Memo.PlanStartTime)
+	}
+	if request.Memo.PlanEndTime != nil {
+		create.PlanEndTs = convertTimestampToStore(request.Memo.PlanEndTime)
+	}
 
 	memo, err := s.Store.CreateMemo(ctx, create)
 	if err != nil {
@@ -533,6 +539,10 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 			payload := memo.Payload
 			payload.Location = convertLocationToStore(request.Memo.Location)
 			update.Payload = payload
+		} else if path == "plan_start_time" {
+			update.PlanStartTs = convertTimestampToStore(request.Memo.PlanStartTime)
+		} else if path == "plan_end_time" {
+			update.PlanEndTs = convertTimestampToStore(request.Memo.PlanEndTime)
 		} else if path == "attachments" {
 			if err := s.setMemoAttachmentsInternal(ctx, user, memo, request.Memo.Attachments); err != nil {
 				return nil, errors.Wrap(err, "failed to set memo attachments")
@@ -1034,8 +1044,20 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 				memoFind.OrderByTimeAsc = fieldDirection == "asc"
 			}
 			hasExplicitTimeField = true
+		case "plan_start_time":
+			if !hasExplicitTimeField {
+				memoFind.OrderByPlanStart = true
+				memoFind.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "plan_end_time":
+			if !hasExplicitTimeField {
+				memoFind.OrderByPlanEnd = true
+				memoFind.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
 		default:
-			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, name", fieldName)
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, name", fieldName)
 		}
 	}
 

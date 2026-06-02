@@ -40,6 +40,8 @@ CREATE TABLE memo (
   content TEXT NOT NULL DEFAULT '',
   visibility TEXT NOT NULL CHECK (visibility IN ('PUBLIC', 'PROTECTED', 'PRIVATE')) DEFAULT 'PRIVATE',
   pinned INTEGER NOT NULL CHECK (pinned IN (0, 1)) DEFAULT 0,
+  plan_start_ts BIGINT DEFAULT NULL,
+  plan_end_ts BIGINT DEFAULT NULL,
   payload TEXT NOT NULL DEFAULT '{}'
 );
 

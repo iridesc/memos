@@ -46,6 +46,8 @@ export const useMemoViewDerived = () => {
 
   const createTime = memo.createTime ? timestampDate(memo.createTime) : undefined;
   const updateTime = memo.updateTime ? timestampDate(memo.updateTime) : undefined;
+  const planStartTime = memo.planStartTime ? timestampDate(memo.planStartTime) : undefined;
+  const planEndTime = memo.planEndTime ? timestampDate(memo.planEndTime) : undefined;
   const displayTime = timeBasis === "update_time" ? updateTime : createTime;
   const isDisplayingUpdatedTime =
     timeBasis === "update_time" && !!createTime && !!updateTime && updateTime.getTime() !== createTime.getTime();
@@ -62,5 +64,7 @@ export const useMemoViewDerived = () => {
     displayTime,
     isDisplayingUpdatedTime,
     relativeTimeFormat,
+    planStartTime,
+    planEndTime,
   };
 };

@@ -70,6 +70,28 @@ function buildUpdateMask(
     }
   }
 
+  // Handle plan times
+  if (state.timestamps.planStartTime !== undefined) {
+    const prevPlanStart = prevMemo.planStartTime ? timestampDate(prevMemo.planStartTime) : undefined;
+    if (!isEqual(state.timestamps.planStartTime?.getTime(), prevPlanStart?.getTime())) {
+      mask.add("plan_start_time");
+      patch.planStartTime = state.timestamps.planStartTime ? timestampFromDate(state.timestamps.planStartTime) : undefined;
+    }
+  } else if (prevMemo.planStartTime) {
+    mask.add("plan_start_time");
+    patch.planStartTime = undefined;
+  }
+  if (state.timestamps.planEndTime !== undefined) {
+    const prevPlanEnd = prevMemo.planEndTime ? timestampDate(prevMemo.planEndTime) : undefined;
+    if (!isEqual(state.timestamps.planEndTime?.getTime(), prevPlanEnd?.getTime())) {
+      mask.add("plan_end_time");
+      patch.planEndTime = state.timestamps.planEndTime ? timestampFromDate(state.timestamps.planEndTime) : undefined;
+    }
+  } else if (prevMemo.planEndTime) {
+    mask.add("plan_end_time");
+    patch.planEndTime = undefined;
+  }
+
   return { mask, patch };
 }
 
@@ -110,6 +132,8 @@ export const memoService = {
       location: state.metadata.location,
       createTime: state.timestamps.createTime ? timestampFromDate(state.timestamps.createTime) : undefined,
       updateTime: state.timestamps.updateTime ? timestampFromDate(state.timestamps.updateTime) : undefined,
+      planStartTime: state.timestamps.planStartTime ? timestampFromDate(state.timestamps.planStartTime) : undefined,
+      planEndTime: state.timestamps.planEndTime ? timestampFromDate(state.timestamps.planEndTime) : undefined,
     });
 
     const memo = options.parentMemoName
@@ -140,6 +164,8 @@ export const memoService = {
       timestamps: {
         createTime: memo.createTime ? timestampDate(memo.createTime) : undefined,
         updateTime: memo.updateTime ? timestampDate(memo.updateTime) : undefined,
+        planStartTime: memo.planStartTime ? timestampDate(memo.planStartTime) : undefined,
+        planEndTime: memo.planEndTime ? timestampDate(memo.planEndTime) : undefined,
       },
       localFiles: [],
       audioRecorder: {

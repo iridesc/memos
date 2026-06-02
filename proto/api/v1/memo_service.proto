@@ -255,6 +255,14 @@ message Memo {
   // Optional. The location of the memo.
   optional Location location = 18 [(google.api.field_behavior) = OPTIONAL];
 
+  // Optional. The planned start time of the memo.
+  // When set, indicates when the user plans to start working on this memo.
+  google.protobuf.Timestamp plan_start_time = 19 [(google.api.field_behavior) = OPTIONAL];
+
+  // Optional. The planned end time of the memo.
+  // When set, indicates the deadline or planned completion time.
+  google.protobuf.Timestamp plan_end_time = 20 [(google.api.field_behavior) = OPTIONAL];
+
   // Computed properties of a memo.
   message Property {
     bool has_link = 1;
@@ -305,7 +313,7 @@ message ListMemosRequest {
   // Default to "create_time desc".
   // Supports comma-separated list of fields following AIP-132.
   // Example: "pinned desc, create_time desc" or "update_time asc"
-  // Supported fields: pinned, create_time, update_time, name
+  // Supported fields: pinned, create_time, update_time, plan_start_time, plan_end_time, name
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // Optional. Filter to apply to the list results.

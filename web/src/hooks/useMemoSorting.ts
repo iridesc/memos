@@ -16,8 +16,16 @@ export interface UseMemoSortingResult {
 }
 
 const getMemoSortTime = (memo: Memo, timeBasis: MemoTimeBasis): Date | undefined => {
-  const timestamp = timeBasis === "update_time" ? memo.updateTime : memo.createTime;
-  return timestamp ? timestampDate(timestamp) : undefined;
+  switch (timeBasis) {
+    case "update_time":
+      return memo.updateTime ? timestampDate(memo.updateTime) : undefined;
+    case "plan_start_time":
+      return memo.planStartTime ? timestampDate(memo.planStartTime) : undefined;
+    case "plan_end_time":
+      return memo.planEndTime ? timestampDate(memo.planEndTime) : undefined;
+    default:
+      return memo.createTime ? timestampDate(memo.createTime) : undefined;
+  }
 };
 
 export const useMemoSorting = (options: UseMemoSortingOptions = {}): UseMemoSortingResult => {

@@ -648,7 +648,7 @@ paths:
                      Default to "create_time desc".
                      Supports comma-separated list of fields following AIP-132.
                      Example: "pinned desc, create_time desc" or "update_time asc"
-                     Supported fields: pinned, create_time, update_time, name
+                     Supported fields: pinned, create_time, update_time, plan_start_time, plan_end_time, name
                   schema:
                     type: string
                 - name: filter
@@ -3256,6 +3256,18 @@ components:
                     allOf:
                         - $ref: '#/components/schemas/Location'
                     description: Optional. The location of the memo.
+                planStartTime:
+                    type: string
+                    description: |-
+                        Optional. The planned start time of the memo.
+                         When set, indicates when the user plans to start working on this memo.
+                    format: date-time
+                planEndTime:
+                    type: string
+                    description: |-
+                        Optional. The planned end time of the memo.
+                         When set, indicates the deadline or planned completion time.
+                    format: date-time
         MemoRelation:
             required:
                 - memo

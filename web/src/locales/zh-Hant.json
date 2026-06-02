@@ -154,7 +154,11 @@
     "username": "帳號",
     "version": "版本",
     "visibility": "瀏覽權限",
-    "yourself": "您自己"
+    "yourself": "您自己",
+    "plan-start": "計劃開始",
+    "plan-end": "計劃結束",
+    "plan-from": "從",
+    "plan-until": "截止於"
   },
   "editor": {
     "add-your-comment-here": "在這裡添加您的評論...",

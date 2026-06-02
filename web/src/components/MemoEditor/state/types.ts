@@ -27,6 +27,8 @@ export interface EditorState {
   timestamps: {
     createTime?: Date;
     updateTime?: Date;
+    planStartTime?: Date;
+    planEndTime?: Date;
   };
   localFiles: LocalFile[];
   audioRecorder: {
@@ -81,6 +83,8 @@ export const initialState: EditorState = {
   timestamps: {
     createTime: undefined,
     updateTime: undefined,
+    planStartTime: undefined,
+    planEndTime: undefined,
   },
   localFiles: [],
   audioRecorder: {

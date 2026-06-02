@@ -22,7 +22,15 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
   const [reactionSelectorOpen, setReactionSelectorOpen] = useState(false);
 
   const { memo, creator, currentUser, parentPage, isArchived, readonly, openEditor } = useMemoViewContext();
-  const { createTime, updateTime, displayTime: memoDisplayTime, isDisplayingUpdatedTime, relativeTimeFormat } = useMemoViewDerived();
+  const {
+    createTime,
+    updateTime,
+    planStartTime,
+    planEndTime,
+    displayTime: memoDisplayTime,
+    isDisplayingUpdatedTime,
+    relativeTimeFormat,
+  } = useMemoViewDerived();
 
   const navigateTo = useNavigateTo();
   const handleGotoMemoDetailPage = useCallback(() => {
@@ -46,6 +54,8 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
   const timeTooltip = {
     createdAt: createTime ? `${t("common.created-at")}: ${createTime.toLocaleString(i18n.language)}` : undefined,
     updatedAt: updateTime ? `${t("common.last-updated-at")}: ${updateTime.toLocaleString(i18n.language)}` : undefined,
+    planStart: planStartTime ? `\u{1F4C5} ${t("common.plan-start")}: ${planStartTime.toLocaleString(i18n.language)}` : undefined,
+    planEnd: planEndTime ? `\u{1F4C5} ${t("common.plan-end")}: ${planEndTime.toLocaleString(i18n.language)}` : undefined,
   };
 
   return (
@@ -56,6 +66,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
         ) : (
           <TimeDisplay displayTime={displayTime} timeTooltip={timeTooltip} onGotoDetail={handleGotoMemoDetailPage} />
         )}
+        <PlanTimeDisplay planStartTime={planStartTime} planEndTime={planEndTime} language={i18n.language} />
       </div>
 
       <div className="flex flex-row justify-end items-center select-none shrink-0 gap-2">
@@ -137,6 +148,8 @@ const CreatorDisplay: React.FC<CreatorDisplayProps> = ({ creator, displayTime, t
 interface TimeTooltipContent {
   createdAt?: string;
   updatedAt?: string;
+  planStart?: string;
+  planEnd?: string;
 }
 
 const TimeTooltip = ({ children, content }: { children: React.ReactElement; content: TimeTooltipContent }) => (
@@ -145,6 +158,8 @@ const TimeTooltip = ({ children, content }: { children: React.ReactElement; cont
     <TooltipContent align="start" className="flex flex-col items-start gap-0.5 whitespace-nowrap text-left">
       {content.createdAt && <span>{content.createdAt}</span>}
       {content.updatedAt && <span>{content.updatedAt}</span>}
+      {content.planStart && <span>{content.planStart}</span>}
+      {content.planEnd && <span>{content.planEnd}</span>}
     </TooltipContent>
   </Tooltip>
 );
@@ -166,5 +181,25 @@ const TimeDisplay: React.FC<TimeDisplayProps> = ({ displayTime, timeTooltip, onG
     </button>
   </TimeTooltip>
 );
+
+const PlanTimeDisplay: React.FC<{ planStartTime?: Date; planEndTime?: Date; language: string }> = ({
+  planStartTime,
+  planEndTime,
+  language,
+}) => {
+  const t = useTranslate();
+  if (!planStartTime && !planEndTime) return null;
+
+  let displayText: string;
+  if (planStartTime && planEndTime) {
+    displayText = `📅 ${planStartTime.toLocaleDateString(language)} ~ ${planEndTime.toLocaleDateString(language)}`;
+  } else if (planStartTime) {
+    displayText = `📅 ${t("common.plan-from")} ${planStartTime.toLocaleDateString(language)}`;
+  } else {
+    displayText = `📅 ${t("common.plan-until")} ${planEndTime!.toLocaleDateString(language)}`;
+  }
+
+  return <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">{displayText}</span>;
+};
 
 export default MemoHeader;

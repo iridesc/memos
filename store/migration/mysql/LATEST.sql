@@ -39,6 +39,8 @@ CREATE TABLE `memo` (
   `content` TEXT NOT NULL,
   `visibility` VARCHAR(256) NOT NULL DEFAULT 'PRIVATE',
   `pinned` BOOLEAN NOT NULL DEFAULT FALSE,
+  `plan_start_ts` BIGINT DEFAULT NULL,
+  `plan_end_ts` BIGINT DEFAULT NULL,
   `payload` JSON NOT NULL
 );
 

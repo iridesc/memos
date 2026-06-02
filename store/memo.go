@@ -45,10 +45,12 @@ type Memo struct {
 	UpdatedTs int64
 
 	// Domain specific fields
-	Content    string
-	Visibility Visibility
-	Pinned     bool
-	Payload    *storepb.MemoPayload
+	Content      string
+	Visibility   Visibility
+	Pinned       bool
+	PlanStartTs  *int64
+	PlanEndTs    *int64
+	Payload      *storepb.MemoPayload
 
 	// Composed fields
 	ParentUID *string
@@ -76,9 +78,11 @@ type FindMemo struct {
 	Offset *int
 
 	// Ordering
-	OrderByPinned    bool
-	OrderByUpdatedTs bool
-	OrderByTimeAsc   bool
+	OrderByPinned     bool
+	OrderByUpdatedTs  bool
+	OrderByPlanStart  bool
+	OrderByPlanEnd    bool
+	OrderByTimeAsc    bool
 }
 
 type FindMemoPayload struct {
@@ -91,15 +95,17 @@ type FindMemoPayload struct {
 }
 
 type UpdateMemo struct {
-	ID         int32
-	UID        *string
-	CreatedTs  *int64
-	UpdatedTs  *int64
-	RowStatus  *RowStatus
-	Content    *string
-	Visibility *Visibility
-	Pinned     *bool
-	Payload    *storepb.MemoPayload
+	ID          int32
+	UID         *string
+	CreatedTs   *int64
+	UpdatedTs   *int64
+	RowStatus   *RowStatus
+	Content     *string
+	Visibility  *Visibility
+	Pinned      *bool
+	PlanStartTs *int64
+	PlanEndTs   *int64
+	Payload     *storepb.MemoPayload
 }
 
 type DeleteMemo struct {

@@ -1,5 +1,72 @@
-import type { FC } from "react";
+const PlanTimeEditor: FC<{
+  planStartTime?: Date;
+  planEndTime?: Date;
+  onChange: (times: { planStartTime?: Date; planEndTime?: Date }) => void;
+}> = ({ planStartTime, planEndTime, onChange }) => {
+  const t = useTranslate();
+  const [open, setOpen] = useState(false);
+  const hasPlanTime = planStartTime || planEndTime;
+
+  const formatDate = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className={hasPlanTime ? "text-primary bg-primary/10" : ""}>
+          <CalendarIcon className="w-4 h-auto" />
+          {hasPlanTime && (
+            <span className="ml-1 text-xs">
+              {planStartTime && planEndTime
+                ? `${planStartTime.toLocaleDateString()} ~ ${planEndTime.toLocaleDateString()}`
+                : planStartTime
+                  ? `${t("common.plan-from")} ${planStartTime.toLocaleDateString()}`
+                  : `${t("common.plan-until")} ${planEndTime!.toLocaleDateString()}`}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64">
+        <div className="flex flex-col gap-3 p-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
+            <input
+              type="date"
+              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              value={formatDate(planStartTime)}
+              onChange={(e) => onChange({ planStartTime: e.target.value ? new Date(e.target.value) : undefined, planEndTime })}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted-foreground">{t("common.plan-end")}</label>
+            <input
+              type="date"
+              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              value={formatDate(planEndTime)}
+              onChange={(e) => onChange({ planStartTime, planEndTime: e.target.value ? new Date(e.target.value) : undefined })}
+            />
+          </div>
+          {hasPlanTime && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                onChange({ planStartTime: undefined, planEndTime: undefined });
+                setOpen(false);
+              }}
+            >
+              {t("common.clear")}
+            </Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+import { CalendarIcon } from "lucide-react";
+import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTranslate } from "@/utils/i18n";
 import { validationService } from "../services";
 import { useEditorContext } from "../state";
@@ -39,6 +106,11 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoNa
         />
       </div>
 
+      <PlanTimeEditor
+        planStartTime={state.timestamps.planStartTime}
+        planEndTime={state.timestamps.planEndTime}
+        onChange={(times) => dispatch(actions.setTimestamps(times))}
+      />
       <div className="flex flex-row justify-end items-center gap-2">
         <VisibilitySelector value={state.metadata.visibility} onChange={handleVisibilityChange} />
 

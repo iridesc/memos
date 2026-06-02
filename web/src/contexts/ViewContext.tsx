@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
 
-export type MemoTimeBasis = "create_time" | "update_time";
+export type MemoTimeBasis = "create_time" | "update_time" | "plan_start_time" | "plan_end_time";
 
 interface ViewState {
   orderByTimeAsc: boolean;
@@ -26,7 +26,13 @@ export function ViewProvider({ children }: { children: ReactNode }) {
       if (cached) {
         const data = JSON.parse(cached) as Partial<ViewState>;
         const cachedTimeBasis = data.timeBasis ?? data.sortTimeField;
-        const timeBasis = cachedTimeBasis === "create_time" || cachedTimeBasis === "update_time" ? cachedTimeBasis : undefined;
+        const timeBasis =
+          cachedTimeBasis === "create_time" ||
+          cachedTimeBasis === "update_time" ||
+          cachedTimeBasis === "plan_start_time" ||
+          cachedTimeBasis === "plan_end_time"
+            ? cachedTimeBasis
+            : undefined;
         return {
           orderByTimeAsc: Boolean(data.orderByTimeAsc ?? false),
           timeBasis,

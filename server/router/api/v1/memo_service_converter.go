@@ -35,14 +35,16 @@ func (s *APIV1Service) convertMemoFromStoreWithCreators(ctx context.Context, mem
 		return nil, errMemoCreatorNotFound
 	}
 	memoMessage := &v1pb.Memo{
-		Name:       name,
-		State:      convertStateFromStore(memo.RowStatus),
-		Creator:    BuildUserName(creator.Username),
-		CreateTime: timestamppb.New(time.Unix(memo.CreatedTs, 0)),
-		UpdateTime: timestamppb.New(time.Unix(memo.UpdatedTs, 0)),
-		Content:    memo.Content,
-		Visibility: convertVisibilityFromStore(memo.Visibility),
-		Pinned:     memo.Pinned,
+		Name:          name,
+		State:         convertStateFromStore(memo.RowStatus),
+		Creator:       BuildUserName(creator.Username),
+		CreateTime:    timestamppb.New(time.Unix(memo.CreatedTs, 0)),
+		UpdateTime:    timestamppb.New(time.Unix(memo.UpdatedTs, 0)),
+		PlanStartTime: convertTimestampFromStore(memo.PlanStartTs),
+		PlanEndTime:   convertTimestampFromStore(memo.PlanEndTs),
+		Content:       memo.Content,
+		Visibility:    convertVisibilityFromStore(memo.Visibility),
+		Pinned:        memo.Pinned,
 	}
 	if memo.Payload != nil {
 		memoMessage.Tags = memo.Payload.Tags
@@ -369,4 +371,21 @@ func convertVisibilityToStore(visibility v1pb.Visibility) store.Visibility {
 	default:
 		return store.Private
 	}
+}
+
+// convertTimestampFromStore converts a *int64 unix timestamp to a *timestamppb.Timestamp.
+func convertTimestampFromStore(ts *int64) *timestamppb.Timestamp {
+	if ts == nil {
+		return nil
+	}
+	return timestamppb.New(time.Unix(*ts, 0))
+}
+
+// convertTimestampToStore converts a *timestamppb.Timestamp to a *int64 unix timestamp.
+func convertTimestampToStore(ts *timestamppb.Timestamp) *int64 {
+	if ts == nil {
+		return nil
+	}
+	unix := ts.AsTime().Unix()
+	return &unix
 }
