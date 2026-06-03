@@ -17,6 +17,7 @@ const PlanTimeEditor: FC<{
   const t = useTranslate();
   const [open, setOpen] = useState(false);
   const hasPlanTime = !!(planStartTime && planEndTime);
+  const hasAnyPlanTime = !!(planStartTime || planEndTime);
 
   const formatDate = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
   const today = "2026-06-03";
@@ -80,7 +81,7 @@ const PlanTimeEditor: FC<{
               disabled={!planStartTime}
             />
           </div>
-          {hasPlanTime && (
+          {hasAnyPlanTime && (
             <Button
               variant="ghost"
               size="sm"
