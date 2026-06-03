@@ -19,6 +19,28 @@ const PlanTimeEditor: FC<{
   const hasPlanTime = !!(planStartTime && planEndTime);
   const hasAnyPlanTime = !!(planStartTime || planEndTime);
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && !hasAnyPlanTime) {
+      const now = new Date();
+      // Round up to next 5-min mark after adding 5 minutes
+      const nextMin = Math.ceil((now.getMinutes() + 5) / 5) * 5;
+      let startH = now.getHours();
+      let startM = nextMin;
+      if (startM >= 60) {
+        startH += 1;
+        startM -= 60;
+      }
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, startM, 0, 0);
+
+      // End: today 23:55 if gap >= 1h, otherwise tomorrow 23:55
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 55, 0, 0);
+      const end = todayEnd.getTime() - start.getTime() >= 60 * 60 * 1000 ? todayEnd : new Date(todayEnd.getTime() + 24 * 60 * 60 * 1000);
+
+      onChange({ planStartTime: start, planEndTime: end });
+    }
+    setOpen(newOpen);
+  };
+
   const pad = (n: number) => n.toString().padStart(2, "0");
   const formatDate = (d?: Date) => (d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "");
   const getHour = (d?: Date) => (d ? d.getHours() : 0);
@@ -115,7 +137,7 @@ const PlanTimeEditor: FC<{
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className={hasPlanTime ? "text-primary bg-primary/10" : ""}>
           <CalendarIcon className="w-4 h-auto" />
