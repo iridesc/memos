@@ -543,9 +543,19 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 			payload.Location = convertLocationToStore(request.Memo.Location)
 			update.Payload = payload
 		} else if path == "plan_start_time" {
-			update.PlanStartTs = convertTimestampToStore(request.Memo.PlanStartTime)
+			ts := convertTimestampToStore(request.Memo.PlanStartTime)
+			if ts == nil {
+				clear := int64(-1)
+				ts = &clear
+			}
+			update.PlanStartTs = ts
 		} else if path == "plan_end_time" {
-			update.PlanEndTs = convertTimestampToStore(request.Memo.PlanEndTime)
+			ts := convertTimestampToStore(request.Memo.PlanEndTime)
+			if ts == nil {
+				clear := int64(-1)
+				ts = &clear
+			}
+			update.PlanEndTs = ts
 		} else if path == "attachments" {
 			if err := s.setMemoAttachmentsInternal(ctx, user, memo, request.Memo.Attachments); err != nil {
 				return nil, errors.Wrap(err, "failed to set memo attachments")
@@ -1095,6 +1105,10 @@ func validatePlanTimes(startTs, endTs *int64) error {
 		return status.Errorf(codes.InvalidArgument, "plan_start_time and plan_end_time must be set together or not at all")
 	}
 	if startTs == nil {
+		return nil
+	}
+	// Sentinel value -1 means "clear both to NULL", skip validation.
+	if *startTs == -1 && *endTs == -1 {
 		return nil
 	}
 

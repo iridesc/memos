@@ -253,10 +253,18 @@ func (d *DB) UpdateMemo(ctx context.Context, update *store.UpdateMemo) error {
 		set, args = append(set, "`visibility` = ?"), append(args, *v)
 	}
 		if v := update.PlanEndTs; v != nil {
-			set, args = append(set, "`plan_end_ts` = ?"), append(args, *v)
+			if *v == -1 {
+				set = append(set, "`plan_end_ts` = NULL")
+			} else {
+				set, args = append(set, "`plan_end_ts` = ?"), append(args, *v)
+			}
 		}
 		if v := update.PlanStartTs; v != nil {
-			set, args = append(set, "`plan_start_ts` = ?"), append(args, *v)
+			if *v == -1 {
+				set = append(set, "`plan_start_ts` = NULL")
+			} else {
+				set, args = append(set, "`plan_start_ts` = ?"), append(args, *v)
+			}
 		}
 
 	if v := update.Pinned; v != nil {
