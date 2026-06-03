@@ -1,3 +1,14 @@
+import { CalendarIcon } from "lucide-react";
+import { type FC, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTranslate } from "@/utils/i18n";
+import { validationService } from "../services";
+import { useEditorContext } from "../state";
+import InsertMenu from "../Toolbar/InsertMenu";
+import VisibilitySelector from "../Toolbar/VisibilitySelector";
+import type { EditorToolbarProps } from "../types";
+
 const PlanTimeEditor: FC<{
   planStartTime?: Date;
   planEndTime?: Date;
@@ -5,9 +16,34 @@ const PlanTimeEditor: FC<{
 }> = ({ planStartTime, planEndTime, onChange }) => {
   const t = useTranslate();
   const [open, setOpen] = useState(false);
-  const hasPlanTime = planStartTime || planEndTime;
+  const hasPlanTime = !!(planStartTime && planEndTime);
 
   const formatDate = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
+  const today = "2026-06-03";
+
+  const handleStartChange = (value: string) => {
+    const newStart = value ? new Date(value) : undefined;
+    // When start is cleared, clear both; when start is set, ensure end is not before it
+    if (!newStart) {
+      onChange({ planStartTime: undefined, planEndTime: undefined });
+    } else {
+      const newEnd = planEndTime && planEndTime < newStart ? undefined : planEndTime;
+      onChange({ planStartTime: newStart, planEndTime: newEnd });
+    }
+  };
+
+  const handleEndChange = (value: string) => {
+    const newEnd = value ? new Date(value) : undefined;
+    // When end is cleared, clear both; when end is set, ensure start exists
+    if (!newEnd) {
+      onChange({ planStartTime: undefined, planEndTime: undefined });
+    } else if (!planStartTime) {
+      // Can't set end without start
+      return;
+    } else {
+      onChange({ planStartTime, planEndTime: newEnd });
+    }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -16,11 +52,7 @@ const PlanTimeEditor: FC<{
           <CalendarIcon className="w-4 h-auto" />
           {hasPlanTime && (
             <span className="ml-1 text-xs">
-              {planStartTime && planEndTime
-                ? `${planStartTime.toLocaleDateString()} ~ ${planEndTime.toLocaleDateString()}`
-                : planStartTime
-                  ? `${t("common.plan-from")} ${planStartTime.toLocaleDateString()}`
-                  : `${t("common.plan-until")} ${planEndTime!.toLocaleDateString()}`}
+              {planStartTime!.toLocaleDateString()} ~ {planEndTime!.toLocaleDateString()}
             </span>
           )}
         </Button>
@@ -31,18 +63,21 @@ const PlanTimeEditor: FC<{
             <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
             <input
               type="date"
+              min={today}
               className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
               value={formatDate(planStartTime)}
-              onChange={(e) => onChange({ planStartTime: e.target.value ? new Date(e.target.value) : undefined, planEndTime })}
+              onChange={(e) => handleStartChange(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t("common.plan-end")}</label>
             <input
               type="date"
+              min={planStartTime ? formatDate(planStartTime) : today}
               className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
               value={formatDate(planEndTime)}
-              onChange={(e) => onChange({ planStartTime, planEndTime: e.target.value ? new Date(e.target.value) : undefined })}
+              onChange={(e) => handleEndChange(e.target.value)}
+              disabled={!planStartTime}
             />
           </div>
           {hasPlanTime && (
@@ -62,17 +97,6 @@ const PlanTimeEditor: FC<{
     </Popover>
   );
 };
-
-import { CalendarIcon } from "lucide-react";
-import { type FC, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useTranslate } from "@/utils/i18n";
-import { validationService } from "../services";
-import { useEditorContext } from "../state";
-import InsertMenu from "../Toolbar/InsertMenu";
-import VisibilitySelector from "../Toolbar/VisibilitySelector";
-import type { EditorToolbarProps } from "../types";
 
 export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoName, onAudioRecorderClick }) => {
   const t = useTranslate();

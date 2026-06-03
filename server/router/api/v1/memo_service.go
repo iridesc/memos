@@ -120,6 +120,9 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 	if request.Memo.PlanEndTime != nil {
 		create.PlanEndTs = convertTimestampToStore(request.Memo.PlanEndTime)
 	}
+	if err := validatePlanTimes(create.PlanStartTs, create.PlanEndTs); err != nil {
+		return nil, err
+	}
 
 	memo, err := s.Store.CreateMemo(ctx, create)
 	if err != nil {
@@ -553,6 +556,19 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 			}
 		}
 	}
+
+		// Validate plan times after merging updates with existing values.
+		effectiveStart := memo.PlanStartTs
+		if update.PlanStartTs != nil {
+			effectiveStart = update.PlanStartTs
+		}
+		effectiveEnd := memo.PlanEndTs
+		if update.PlanEndTs != nil {
+			effectiveEnd = update.PlanEndTs
+		}
+		if err := validatePlanTimes(effectiveStart, effectiveEnd); err != nil {
+			return nil, err
+		}
 
 	if err = s.Store.UpdateMemo(ctx, update); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update memo")
@@ -1064,6 +1080,34 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 	// If only pinned was specified, still need to set a default time ordering.
 	if hasPinned && !memoFind.OrderByUpdatedTs && len(fields) == 1 {
 		memoFind.OrderByTimeAsc = false // default to desc
+	}
+
+	return nil
+}
+
+// validatePlanTimes validates plan start and end times.
+// Rules:
+// 1. Both must be set or both must be nil (no partial setting).
+// 2. plan_start_time cannot be in the past.
+// 3. plan_end_time must be >= plan_start_time.
+func validatePlanTimes(startTs, endTs *int64) error {
+	if (startTs == nil) != (endTs == nil) {
+		return status.Errorf(codes.InvalidArgument, "plan_start_time and plan_end_time must be set together or not at all")
+	}
+	if startTs == nil {
+		return nil
+	}
+
+	// Plan start time must not be in the past (before start of today).
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+	if *startTs < todayStart {
+		return status.Errorf(codes.InvalidArgument, "plan_start_time cannot be in the past")
+	}
+
+	// Plan end time must be >= plan start time.
+	if *endTs < *startTs {
+		return status.Errorf(codes.InvalidArgument, "plan_end_time must be after or equal to plan_start_time")
 	}
 
 	return nil
