@@ -21,7 +21,8 @@ const PlanTimeEditor: FC<{
 
   const pad = (n: number) => n.toString().padStart(2, "0");
   const formatDate = (d?: Date) => (d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "");
-  const formatTime = (d?: Date) => (d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : "");
+  const getHour = (d?: Date) => (d ? d.getHours() : 0);
+  const getMinute = (d?: Date) => (d ? Math.floor(d.getMinutes() / 5) * 5 : 0);
 
   const displayRange = (start?: Date, end?: Date) => {
     if (!start || !end) return "";
@@ -29,39 +30,28 @@ const PlanTimeEditor: FC<{
     return `${start.toLocaleString(undefined, opts)} ~ ${end.toLocaleString(undefined, opts)}`;
   };
 
-  const mergeDateAndTime = (dateStr: string, timeStr: string, fallback?: Date): Date | undefined => {
-    if (!dateStr) return undefined;
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const date = fallback ? new Date(fallback) : new Date();
-    date.setFullYear(y, m - 1, d);
-    if (timeStr) {
-      const [h, min] = timeStr.split(":").map(Number);
-      date.setHours(h, min, 0, 0);
-    } else {
-      date.setHours(0, 0, 0, 0);
-    }
-    return date;
-  };
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const minutes = Array.from({ length: 12 }, (_, i) => i * 5);
 
   const handleStartDateChange = (dateStr: string) => {
-    const timeStr = formatTime(planStartTime) || "00:00";
-    const newStart = mergeDateAndTime(dateStr, timeStr);
-    if (!newStart) {
+    const h = getHour(planStartTime);
+    const m = getMinute(planStartTime);
+    if (!dateStr) {
       onChange({ planStartTime: undefined, planEndTime: undefined });
-    } else {
-      const defaultEnd = new Date(newStart.getTime() + 24 * 60 * 60 * 1000);
-      const newEnd = !planEndTime || planEndTime < newStart ? defaultEnd : planEndTime;
-      onChange({ planStartTime: newStart, planEndTime: newEnd });
+      return;
     }
+    const [y, mo, d] = dateStr.split("-").map(Number);
+    const newStart = new Date(y, mo - 1, d, h, m, 0, 0);
+    const defaultEnd = new Date(newStart.getTime() + 24 * 60 * 60 * 1000);
+    const newEnd = !planEndTime || planEndTime < newStart ? defaultEnd : planEndTime;
+    onChange({ planStartTime: newStart, planEndTime: newEnd });
   };
 
-  const handleStartTimeChange = (timeStr: string) => {
+  const handleStartTimeChange = (field: "h" | "m", value: number) => {
     if (!planStartTime) return;
     const newStart = new Date(planStartTime);
-    if (timeStr) {
-      const [h, m] = timeStr.split(":").map(Number);
-      newStart.setHours(h, m, 0, 0);
-    }
+    if (field === "h") newStart.setHours(value);
+    else newStart.setMinutes(value);
     const defaultEnd = new Date(newStart.getTime() + 24 * 60 * 60 * 1000);
     const newEnd = !planEndTime || planEndTime < newStart ? defaultEnd : planEndTime;
     onChange({ planStartTime: newStart, planEndTime: newEnd });
@@ -73,28 +63,56 @@ const PlanTimeEditor: FC<{
       return;
     }
     if (!planStartTime) return;
-    const timeStr = formatTime(planEndTime) || "00:00";
-    const newEnd = mergeDateAndTime(dateStr, timeStr, planEndTime);
-    if (newEnd) onChange({ planStartTime, planEndTime: newEnd });
+    const h = getHour(planEndTime);
+    const m = getMinute(planEndTime);
+    const [y, mo, d] = dateStr.split("-").map(Number);
+    const newEnd = new Date(y, mo - 1, d, h, m, 0, 0);
+    onChange({ planStartTime, planEndTime: newEnd });
   };
 
-  const handleEndTimeChange = (timeStr: string) => {
+  const handleEndTimeChange = (field: "h" | "m", value: number) => {
     if (!planStartTime || !planEndTime) return;
     const newEnd = new Date(planEndTime);
-    if (timeStr) {
-      const [h, m] = timeStr.split(":").map(Number);
-      newEnd.setHours(h, m, 0, 0);
-    }
+    if (field === "h") newEnd.setHours(value);
+    else newEnd.setMinutes(value);
     onChange({ planStartTime, planEndTime: newEnd });
   };
 
   const now = new Date();
   const minDate = formatDate(now);
-  const minTime = formatTime(now);
   const startDate = formatDate(planStartTime);
-  const startTime = formatTime(planStartTime);
   const endDate = formatDate(planEndTime);
-  const endTime = formatTime(planEndTime);
+
+  const timeSelect = (d: Date | undefined, disabled: boolean, onChange: (field: "h" | "m", value: number) => void) => (
+    <div className="flex flex-row gap-1 items-center">
+      <span className="text-xs text-muted-foreground">{pad(getHour(d))}</span>
+      <select
+        className="w-14 rounded-md border border-input bg-background px-1 py-1.5 text-xs"
+        value={getHour(d)}
+        onChange={(e) => onChange("h", Number(e.target.value))}
+        disabled={disabled}
+      >
+        {hours.map((h) => (
+          <option key={h} value={h}>
+            {pad(h)}
+          </option>
+        ))}
+      </select>
+      <span className="text-muted-foreground">:</span>
+      <select
+        className="w-14 rounded-md border border-input bg-background px-1 py-1.5 text-xs"
+        value={getMinute(d)}
+        onChange={(e) => onChange("m", Number(e.target.value))}
+        disabled={disabled}
+      >
+        {minutes.map((m) => (
+          <option key={m} value={m}>
+            {pad(m)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -108,7 +126,7 @@ const PlanTimeEditor: FC<{
         <div className="flex flex-col gap-3 p-1">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
-            <div className="flex flex-row gap-2">
+            <div className="flex flex-row gap-2 items-end">
               <input
                 type="date"
                 min={minDate}
@@ -116,18 +134,12 @@ const PlanTimeEditor: FC<{
                 value={startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
               />
-              <input
-                type="time"
-                min={startDate === minDate ? minTime : undefined}
-                className="w-24 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                value={startTime}
-                onChange={(e) => handleStartTimeChange(e.target.value)}
-              />
+              {timeSelect(planStartTime, false, handleStartTimeChange)}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t("common.plan-end")}</label>
-            <div className="flex flex-row gap-2">
+            <div className="flex flex-row gap-2 items-end">
               <input
                 type="date"
                 min={startDate || minDate}
@@ -136,13 +148,7 @@ const PlanTimeEditor: FC<{
                 onChange={(e) => handleEndDateChange(e.target.value)}
                 disabled={!planStartTime}
               />
-              <input
-                type="time"
-                className="w-24 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                value={endTime}
-                onChange={(e) => handleEndTimeChange(e.target.value)}
-                disabled={!planStartTime}
-              />
+              {timeSelect(planEndTime, !planStartTime, handleEndTimeChange)}
             </div>
           </div>
           {hasAnyPlanTime && (
