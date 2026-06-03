@@ -15,6 +15,8 @@ type RowStatus string
 const (
 	// Normal is the status for a normal row.
 	Normal RowStatus = "NORMAL"
+	// Completed is the status for a completed row.
+	Completed RowStatus = "COMPLETED"
 	// Archived is the status for an archived row.
 	Archived RowStatus = "ARCHIVED"
 )

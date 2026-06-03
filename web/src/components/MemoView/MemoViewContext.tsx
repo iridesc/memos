@@ -1,12 +1,10 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createContext, useContext } from "react";
 import { useLocation } from "react-router-dom";
-import { useView } from "@/contexts/ViewContext";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { MemoRelation_Type } from "@/types/proto/api/v1/memo_service_pb";
 import type { User } from "@/types/proto/api/v1/user_service_pb";
 import type { PreviewMediaItem } from "@/utils/media-item";
-import { RELATIVE_TIME_THRESHOLD_MS } from "./constants";
 
 export interface MemoViewContextValue {
   memo: Memo;
@@ -38,7 +36,6 @@ export const computeCommentAmount = (memo: Memo): number =>
 
 export const useMemoViewDerived = () => {
   const { memo, isArchived, readonly } = useMemoViewContext();
-  const { timeBasis } = useView();
   const location = useLocation();
 
   const isInMemoDetailPage = location.pathname.startsWith(`/${memo.name}`) || location.pathname.startsWith("/memos/shares/");
@@ -48,11 +45,6 @@ export const useMemoViewDerived = () => {
   const updateTime = memo.updateTime ? timestampDate(memo.updateTime) : undefined;
   const planStartTime = memo.planStartTime ? timestampDate(memo.planStartTime) : undefined;
   const planEndTime = memo.planEndTime ? timestampDate(memo.planEndTime) : undefined;
-  const displayTime = timeBasis === "update_time" ? updateTime : createTime;
-  const isDisplayingUpdatedTime =
-    timeBasis === "update_time" && !!createTime && !!updateTime && updateTime.getTime() !== createTime.getTime();
-  const relativeTimeFormat: "datetime" | "auto" =
-    displayTime && Date.now() - displayTime.getTime() > RELATIVE_TIME_THRESHOLD_MS ? "datetime" : "auto";
 
   return {
     isArchived,
@@ -61,9 +53,6 @@ export const useMemoViewDerived = () => {
     commentAmount,
     createTime,
     updateTime,
-    displayTime,
-    isDisplayingUpdatedTime,
-    relativeTimeFormat,
     planStartTime,
     planEndTime,
   };

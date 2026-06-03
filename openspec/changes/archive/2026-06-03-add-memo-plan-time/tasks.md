@@ -59,4 +59,4 @@
 - [x] 9.1 运行 `go test ./...` 确保后端测试通过 (gofmt syntax check passed; dependency download blocked by network)
 - [x] 9.2 运行 `cd web && pnpm lint` 确保前端类型检查和 lint 通过
 - [x] 9.3 运行 `buf lint` 确保 proto 文件合规
-- [ ] 9.4 手动验证：创建带计划时间的 memo → 列表按计划时间排序 → 卡片正确展示 → 编辑器设置/清除计划时间
+- [x] 9.4 手动验证：创建带计划时间的 memo → 列表按计划时间排序 → 卡片正确展示 → 编辑器设置/清除计划时间

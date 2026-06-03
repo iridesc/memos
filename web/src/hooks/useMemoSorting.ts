@@ -41,19 +41,17 @@ export const useMemoSorting = (options: UseMemoSortingOptions = {}): UseMemoSort
   // Generate listSort function for client-side sorting
   const listSort = useMemo(() => {
     return (memos: Memo[]): Memo[] => {
-      return memos
-        .filter((memo) => memo.state === state)
-        .sort((a, b) => {
-          // First, sort by pinned status if enabled
-          if (pinnedFirst && a.pinned !== b.pinned) {
-            return b.pinned ? 1 : -1;
-          }
+      return memos.sort((a, b) => {
+        // First, sort by pinned status if enabled
+        if (pinnedFirst && a.pinned !== b.pinned) {
+          return b.pinned ? 1 : -1;
+        }
 
-          // Then sort by the selected time field.
-          const aTime = getMemoSortTime(a, timeBasis);
-          const bTime = getMemoSortTime(b, timeBasis);
-          return orderByTimeAsc ? dayjs(aTime).unix() - dayjs(bTime).unix() : dayjs(bTime).unix() - dayjs(aTime).unix();
-        });
+        // Then sort by the selected time field.
+        const aTime = getMemoSortTime(a, timeBasis);
+        const bTime = getMemoSortTime(b, timeBasis);
+        return orderByTimeAsc ? dayjs(aTime).unix() - dayjs(bTime).unix() : dayjs(bTime).unix() - dayjs(aTime).unix();
+      });
     };
   }, [pinnedFirst, state, orderByTimeAsc, timeBasis]);
 

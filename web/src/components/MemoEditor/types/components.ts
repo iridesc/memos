@@ -20,6 +20,8 @@ export interface MemoEditorProps {
    * in edit mode (when `memo` is set).
    */
   defaultCreateTime?: Date;
+  /** Default plan start/end times for new memos (e.g., auto-filled in Today view). */
+  defaultPlanTimes?: { planStartTime: Date; planEndTime: Date };
   onConfirm?: (memoName: string) => void;
   onCancel?: () => void;
 }

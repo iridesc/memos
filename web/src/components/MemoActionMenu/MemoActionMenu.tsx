@@ -41,8 +41,10 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
   // Derived state
   const isComment = Boolean(memo.parent);
   const isArchived = memo.state === State.ARCHIVED;
+  const isCompleted = memo.state === State.COMPLETED;
+  const isFrozen = isArchived || isCompleted;
   const taskStats = countTasks(memo.content);
-  const canMutateTasks = !readonly && !isArchived && taskStats.total > 0;
+  const canMutateTasks = !readonly && !isFrozen && taskStats.total > 0;
   const hasOpenTasks = taskStats.completed < taskStats.total;
   const hasCompletedTasks = taskStats.completed > 0;
 
@@ -71,8 +73,8 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={2}>
-        {/* Edit actions (non-readonly, non-archived) */}
-        {!readonly && !isArchived && (
+        {/* Edit actions (non-readonly, non-frozen) */}
+        {!readonly && !isFrozen && (
           <>
             {!isComment && (
               <DropdownMenuItem onClick={handleTogglePinMemoBtnClick}>
@@ -87,8 +89,8 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
           </>
         )}
 
-        {/* Copy submenu (non-archived) */}
-        {!isArchived && (
+        {/* Copy submenu (non-frozen) */}
+        {!isFrozen && (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <CopyIcon className="w-4 h-auto" />

@@ -30,6 +30,7 @@ const Archived = lazyWithReload(() => import("@/pages/Archived"));
 const AuthCallback = lazyWithReload(() => import("@/pages/AuthCallback"));
 const Explore = lazyWithReload(() => import("@/pages/Explore"));
 const Home = lazyWithReload(() => import("@/pages/Home"));
+const Today = lazyWithReload(() => import("@/pages/Today"));
 const Inboxes = lazyWithReload(() => import("@/pages/Inboxes"));
 const MemoDetail = lazyWithReload(() => import("@/pages/MemoDetail"));
 const NotFound = lazyWithReload(() => import("@/pages/NotFound"));
@@ -86,6 +87,7 @@ export const routeConfig: RouteObject[] = [
                 children: [{ index: true, element: <Home /> }],
               },
               { path: Routes.ABOUT, element: <About /> },
+              { path: Routes.TODAY, element: <Today /> },
               { path: Routes.EXPLORE, element: <Explore /> },
               { path: "u/:username", element: <UserProfile /> },
               {

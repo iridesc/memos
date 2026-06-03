@@ -12,6 +12,7 @@ interface UseMemoInitOptions {
   autoFocus?: boolean;
   defaultVisibility?: Visibility;
   defaultCreateTime?: Date;
+  defaultPlanTimes?: { planStartTime: Date; planEndTime: Date };
 }
 
 export const useMemoInit = ({
@@ -22,6 +23,7 @@ export const useMemoInit = ({
   autoFocus,
   defaultVisibility,
   defaultCreateTime,
+  defaultPlanTimes,
 }: UseMemoInitOptions) => {
   const { actions, dispatch } = useEditorContext();
   const initializedRef = useRef(false);
@@ -47,6 +49,9 @@ export const useMemoInit = ({
       if (defaultCreateTime) {
         dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultCreateTime }));
       }
+      if (defaultPlanTimes) {
+        dispatch(actions.setTimestamps({ planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }));
+      }
     }
 
     if (autoFocus) {
@@ -54,7 +59,7 @@ export const useMemoInit = ({
     }
 
     setIsInitialized(true);
-  }, [memo, cacheKey, username, autoFocus, defaultVisibility, defaultCreateTime, actions, dispatch, editorRef]);
+  }, [memo, cacheKey, username, autoFocus, defaultVisibility, defaultCreateTime, defaultPlanTimes, actions, dispatch, editorRef]);
 
   return { isInitialized };
 };

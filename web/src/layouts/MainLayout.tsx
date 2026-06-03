@@ -21,7 +21,7 @@ const MainLayout = () => {
   const location = useLocation();
   const currentUser = useCurrentUser();
   const [profileUserName, setProfileUserName] = useState<string | undefined>();
-  const showMemoExplorer = location.pathname !== Routes.ABOUT;
+  const showMemoExplorer = location.pathname !== Routes.ABOUT && location.pathname !== Routes.TODAY;
 
   // Determine context based on current route
   const context: MemoExplorerContext = useMemo(() => {

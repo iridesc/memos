@@ -54,12 +54,19 @@ func (s *APIV1Service) listUsernamesByID(ctx context.Context, userIDs []int32) (
 }
 
 func (s *APIV1Service) ListAllUserStats(ctx context.Context, request *v1pb.ListAllUserStatsRequest) (*v1pb.ListAllUserStatsResponse, error) {
-	rowStatus := convertStateToStore(request.State)
 	memoFind := &store.FindMemo{
 		// Exclude comments by default.
 		ExcludeComments: true,
 		ExcludeContent:  true,
-		RowStatus:       &rowStatus,
+	}
+	if request.State == v1pb.State_ARCHIVED {
+		state := store.Archived
+		memoFind.RowStatus = &state
+	} else if request.State == v1pb.State_COMPLETED {
+		memoFind.RowStatusList = []store.RowStatus{store.Completed}
+	} else {
+		// Default (NORMAL or unspecified): include both NORMAL and COMPLETED.
+		memoFind.RowStatusList = []store.RowStatus{store.Normal, store.Completed}
 	}
 
 	currentUser, err := s.fetchCurrentUser(ctx)
@@ -205,13 +212,12 @@ func (s *APIV1Service) GetUserStats(ctx context.Context, request *v1pb.GetUserSt
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
 
-	normalStatus := store.Normal
 	memoFind := &store.FindMemo{
 		CreatorID: &userID,
 		// Exclude comments by default.
 		ExcludeComments: true,
 		ExcludeContent:  true,
-		RowStatus:       &normalStatus,
+		RowStatusList:   []store.RowStatus{store.Normal, store.Completed},
 	}
 
 	if currentUser == nil {

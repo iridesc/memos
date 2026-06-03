@@ -42,6 +42,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   autoFocus,
   placeholder,
   defaultCreateTime,
+  defaultPlanTimes,
   onConfirm,
   onCancel,
 }) => {
@@ -74,6 +75,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
     autoFocus,
     defaultVisibility,
     defaultCreateTime,
+    defaultPlanTimes,
   });
   const isDraftCacheEnabled = !memo;
 
@@ -95,9 +97,10 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
       actions.setTimestamps({
         createTime: defaultCreateTime,
         updateTime: defaultCreateTime,
+        ...(defaultPlanTimes && { planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }),
       }),
     );
-  }, [defaultCreateTime, memo, isInitialized, actions, dispatch]);
+  }, [defaultCreateTime, defaultPlanTimes, memo, isInitialized, actions, dispatch]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -283,8 +286,13 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
       // and subsequent memos in the same filter session keep the prefilled date.
       // Without this, the live-sync effect won't re-fire (its deps don't change
       // across reset), and memo #2 onward would silently fall back to "now".
-      if (!memoName && defaultCreateTime) {
-        dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultCreateTime }));
+      if (!memoName) {
+        if (defaultCreateTime) {
+          dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultCreateTime }));
+        }
+        if (defaultPlanTimes) {
+          dispatch(actions.setTimestamps({ planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }));
+        }
       }
 
       // Notify parent component of successful save

@@ -120,7 +120,7 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 	if request.Memo.PlanEndTime != nil {
 		create.PlanEndTs = convertTimestampToStore(request.Memo.PlanEndTime)
 	}
-	if err := validatePlanTimes(create.PlanStartTs, create.PlanEndTs); err != nil {
+	if err := validatePlanTimes(create.PlanStartTs, create.PlanEndTs, false); err != nil {
 		return nil, err
 	}
 
@@ -205,9 +205,11 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 			return &v1pb.ListMemosResponse{}, nil
 		}
 		memoFind.CreatorID = &currentUser.ID
+	} else if request.State == v1pb.State_COMPLETED {
+		memoFind.RowStatusList = []store.RowStatus{store.Completed}
 	} else {
-		state := store.Normal
-		memoFind.RowStatus = &state
+		// Default (NORMAL or unspecified): return both NORMAL and COMPLETED.
+		memoFind.RowStatusList = []store.RowStatus{store.Normal, store.Completed}
 	}
 
 	// Parse order_by field (replaces the old sort and direction fields)
@@ -567,17 +569,19 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 		}
 	}
 
-		// Validate plan times after merging updates with existing values.
-		effectiveStart := memo.PlanStartTs
-		if update.PlanStartTs != nil {
-			effectiveStart = update.PlanStartTs
-		}
-		effectiveEnd := memo.PlanEndTs
-		if update.PlanEndTs != nil {
-			effectiveEnd = update.PlanEndTs
-		}
-		if err := validatePlanTimes(effectiveStart, effectiveEnd); err != nil {
-			return nil, err
+		// Validate plan times only when they are being updated.
+		if update.PlanStartTs != nil || update.PlanEndTs != nil {
+			effectiveStart := memo.PlanStartTs
+			if update.PlanStartTs != nil {
+				effectiveStart = update.PlanStartTs
+			}
+			effectiveEnd := memo.PlanEndTs
+			if update.PlanEndTs != nil {
+				effectiveEnd = update.PlanEndTs
+			}
+			if err := validatePlanTimes(effectiveStart, effectiveEnd, true); err != nil {
+				return nil, err
+			}
 		}
 
 	if err = s.Store.UpdateMemo(ctx, update); err != nil {
@@ -1100,7 +1104,7 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 // 1. Both must be set or both must be nil (no partial setting).
 // 2. plan_start_time cannot be in the past.
 // 3. plan_end_time must be >= plan_start_time.
-func validatePlanTimes(startTs, endTs *int64) error {
+func validatePlanTimes(startTs, endTs *int64, isUpdate bool) error {
 	if (startTs == nil) != (endTs == nil) {
 		return status.Errorf(codes.InvalidArgument, "plan_start_time and plan_end_time must be set together or not at all")
 	}
@@ -1112,10 +1116,13 @@ func validatePlanTimes(startTs, endTs *int64) error {
 		return nil
 	}
 
-	// Plan start time must not be in the past.
-	now := time.Now().Unix()
-	if *startTs < now {
-		return status.Errorf(codes.InvalidArgument, "plan_start_time cannot be in the past")
+	// Plan start time must not be in the past for new memos.
+	// Updates (e.g. drag-to-reorder) may set start time in the past.
+	if !isUpdate {
+		now := time.Now().Unix()
+		if *startTs < now {
+			return status.Errorf(codes.InvalidArgument, "plan_start_time cannot be in the past")
+		}
 	}
 
 	// Plan end time must be >= plan start time.

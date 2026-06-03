@@ -239,6 +239,26 @@ func NewSchema() Schema {
 				CompareNeq: true,
 			},
 		},
+		"plan_start_ts": {
+			Name:   "plan_start_ts",
+			Kind:   FieldKindScalar,
+			Type:   FieldTypeTimestamp,
+			Column: Column{Table: "memo", Name: "plan_start_ts"},
+			Expressions: map[DialectName]string{
+				DialectPostgres: "%s",
+				DialectSQLite:   "%s",
+			},
+		},
+		"plan_end_ts": {
+			Name:   "plan_end_ts",
+			Kind:   FieldKindScalar,
+			Type:   FieldTypeTimestamp,
+			Column: Column{Table: "memo", Name: "plan_end_ts"},
+			Expressions: map[DialectName]string{
+				DialectPostgres: "%s",
+				DialectSQLite:   "%s",
+			},
+		},
 	}
 
 	envOptions := []cel.EnvOption{
@@ -255,6 +275,8 @@ func NewSchema() Schema {
 		cel.Variable("has_link", cel.BoolType),
 		cel.Variable("has_code", cel.BoolType),
 		cel.Variable("has_incomplete_tasks", cel.BoolType),
+		cel.Variable("plan_start_ts", cel.IntType),
+		cel.Variable("plan_end_ts", cel.IntType),
 		nowFunction,
 	}
 

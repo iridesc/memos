@@ -111,6 +111,14 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 	if v := find.RowStatus; v != nil {
 		where, args = append(where, "`memo`.`row_status` = ?"), append(args, *v)
 	}
+	if len(find.RowStatusList) > 0 {
+		placeholder := []string{}
+		for _, rs := range find.RowStatusList {
+			placeholder = append(placeholder, "?")
+			args = append(args, rs.String())
+		}
+		where = append(where, fmt.Sprintf("`memo`.`row_status` IN (%s)", strings.Join(placeholder, ",")))
+	}
 	if v := find.VisibilityList; len(v) != 0 {
 		placeholder := []string{}
 		for _, visibility := range v {
