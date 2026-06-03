@@ -91,7 +91,9 @@ const PlanTimeEditor: FC<{
       }
     }
     const newStart = new Date(y, mo - 1, d, h, m, 0, 0);
-    const defaultEnd = new Date(newStart.getTime() + 24 * 60 * 60 * 1000);
+    const todayEnd = new Date(y, mo - 1, d, 23, 55, 0, 0);
+    const defaultEnd =
+      todayEnd.getTime() - newStart.getTime() >= 60 * 60 * 1000 ? todayEnd : new Date(todayEnd.getTime() + 24 * 60 * 60 * 1000);
     const newEnd = !planEndTime || planEndTime < newStart ? defaultEnd : planEndTime;
     onChange({ planStartTime: newStart, planEndTime: newEnd });
   };
@@ -106,7 +108,11 @@ const PlanTimeEditor: FC<{
     if (planEndTime && formatDate(newStart) === formatDate(planEndTime) && planEndTime <= newStart) {
       newEnd = new Date(newStart.getTime() + 5 * 60 * 1000);
     } else if (!planEndTime || planEndTime < newStart) {
-      newEnd = new Date(newStart.getTime() + 24 * 60 * 60 * 1000);
+      const y = newStart.getFullYear();
+      const mo = newStart.getMonth();
+      const d = newStart.getDate();
+      const todayEnd = new Date(y, mo, d, 23, 55, 0, 0);
+      newEnd = todayEnd.getTime() - newStart.getTime() >= 60 * 60 * 1000 ? todayEnd : new Date(todayEnd.getTime() + 24 * 60 * 60 * 1000);
     }
     onChange({ planStartTime: newStart, planEndTime: newEnd });
   };
