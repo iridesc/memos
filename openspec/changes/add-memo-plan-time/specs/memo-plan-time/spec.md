@@ -2,9 +2,9 @@
 
 ### Requirement: Memo 具备可选的计划开始时间和计划结束时间
 
-系统应当为每个 memo 提供 `plan_start_time` 和 `plan_end_time` 两个可选字段。两个字段独立存在：可以只设置其中之一，也可以同时设置两者。当字段未设置时，其值为空（NULL）。
+系统应当为每个 memo 提供 `plan_start_time` 和 `plan_end_time` 两个可选字段。两个字段必须同时设置或同时为空——不允许只设其中一个。当字段未设置时，其值为空（NULL）。
 
-字段类型为 `google.protobuf.Timestamp`，精度到秒。API 响应中未设置的字段应被省略。
+字段类型为 `google.protobuf.Timestamp`，精度到分钟。API 响应中未设置的字段应被省略。
 
 #### Scenario: 创建带计划时间的 memo
 
@@ -18,13 +18,41 @@
 
 #### Scenario: 更新 memo 的计划时间
 
-- **WHEN** 用户通过 `UpdateMemo` API 更新 memo，`update_mask` 包含 `plan_start_time`，并设置新值
-- **THEN** 系统更新该 memo 的 `plan_start_time` 字段为新值，`plan_end_time` 保持不变
+- **WHEN** 用户通过 `UpdateMemo` API 更新 memo，`update_mask` 同时包含 `plan_start_time` 和 `plan_end_time`，并设置新值
+- **THEN** 系统更新该 memo 的两个计划时间字段为新值
 
 #### Scenario: 清除已设置的计划时间
 
-- **WHEN** 用户通过 `UpdateMemo` API 更新 memo，`update_mask` 包含 `plan_start_time`，但请求体中 `plan_start_time` 为空
-- **THEN** 系统将该 memo 的 `plan_start_time` 清空为 NULL
+- **WHEN** 用户通过 `UpdateMemo` API 更新 memo，`update_mask` 同时包含 `plan_start_time` 和 `plan_end_time`，且两者均为空
+- **THEN** 系统将该 memo 的 `plan_start_time` 和 `plan_end_time` 同时清空为 NULL
+
+#### Scenario: 仅设置一个字段被拒绝
+
+- **WHEN** 用户通过 `CreateMemo` 或 `UpdateMemo` API 仅设置 `plan_start_time` 而未设置 `plan_end_time`
+- **THEN** 系统返回 `INVALID_ARGUMENT` 错误，提示两者必须同时设置
+
+### Requirement: 计划时间验证规则
+
+系统必须对计划时间执行以下验证：
+
+1. `plan_start_time` 和 `plan_end_time` 必须同时设置或同时为空
+2. `plan_start_time` 不得早于当前时间
+3. `plan_end_time` 必须大于或等于 `plan_start_time`
+
+#### Scenario: 开始时间在过去被拒绝
+
+- **WHEN** 用户设置 `plan_start_time` 为昨天的日期时间
+- **THEN** 系统返回 `INVALID_ARGUMENT` 错误，提示计划开始时间不能在过去
+
+#### Scenario: 结束时间早于开始时间被拒绝
+
+- **WHEN** 用户设置 `plan_start_time = 2024-06-10T09:00:00Z` 且 `plan_end_time = 2024-06-09T18:00:00Z`
+- **THEN** 系统返回 `INVALID_ARGUMENT` 错误，提示结束时间必须大于或等于开始时间
+
+#### Scenario: 仅设置开始时间被拒绝
+
+- **WHEN** 用户仅设置 `plan_start_time` 而未设置 `plan_end_time`
+- **THEN** 系统返回 `INVALID_ARGUMENT` 错误，提示两者必须同时设置
 
 ### Requirement: 支持按计划时间排序 memo 列表
 
@@ -52,24 +80,14 @@
 
 ### Requirement: 前端 memo 卡片展示计划时间范围
 
-前端 memo 卡片的 Header 区域应当展示计划时间范围。仅当 `plan_start_time` 或 `plan_end_time` 至少有一个存在时才展示。展示位置在创建时间旁边。
+前端 memo 卡片的 Header 区域应当展示计划时间范围。仅当 `plan_start_time` 和 `plan_end_time` 均存在时才展示。展示位置在创建时间旁边，精确到分钟。
 
-#### Scenario: 两个计划时间均存在
+#### Scenario: 计划时间存在
 
 - **WHEN** memo 的 `plan_start_time` 和 `plan_end_time` 均已设置
-- **THEN** MemoHeader 中显示 `📅 开始日期 ~ 结束日期` 格式的计划时间范围，例如 `📅 2024-06-05 ~ 2024-06-10`
+- **THEN** MemoHeader 中显示 `📅 开始日期时间 ~ 结束日期时间` 格式的计划时间范围，精确到分钟，例如 `📅 2024-06-05 09:00 ~ 2024-06-10 18:00`
 
-#### Scenario: 仅计划开始时间存在
-
-- **WHEN** memo 仅设置了 `plan_start_time`，`plan_end_time` 为空
-- **THEN** MemoHeader 中显示 `📅 从 2024-06-05 开始`
-
-#### Scenario: 仅计划结束时间存在
-
-- **WHEN** memo 仅设置了 `plan_end_time`，`plan_start_time` 为空
-- **THEN** MemoHeader 中显示 `📅 截止于 2024-06-10`
-
-#### Scenario: 两个计划时间均不存在
+#### Scenario: 计划时间不存在
 
 - **WHEN** memo 的 `plan_start_time` 和 `plan_end_time` 均为空
 - **THEN** MemoHeader 中不显示任何计划时间相关信息
@@ -81,22 +99,27 @@
 
 ### Requirement: 前端编辑器支持设置计划时间
 
-前端 memo 编辑器的底部元数据区应当提供日期时间选择器，允许用户设置和清除计划开始时间和计划结束时间。
+前端 memo 编辑器的底部元数据区应当提供日期时间选择器，允许用户设置和清除计划开始时间和计划结束时间。选择器精确到分钟。
 
 #### Scenario: 设置计划时间
 
-- **WHEN** 用户点击编辑器底部的计划时间按钮，弹出日期时间选择器
-- **THEN** 用户可以分别选择开始日期时间和结束日期时间，点击确定后计划时间被设置
+- **WHEN** 用户点击编辑器底部的计划时间按钮（日历图标），弹出日期时间选择器
+- **THEN** 用户可以分别选择开始日期时间和结束日期时间
 
-#### Scenario: 仅设置部分时间
+#### Scenario: 开始时间后自动填充结束时间
 
-- **WHEN** 用户在编辑器中选择计划开始时间但不设置结束时间
-- **THEN** 创建的 memo 仅包含 `plan_start_time`，`plan_end_time` 为空
+- **WHEN** 用户在编辑器中选择计划开始时间
+- **THEN** 系统自动将计划结束时间设为「开始时间 + 24 小时」，用户可手动修改结束时间
 
-#### Scenario: 清除已设置的计划时间
+#### Scenario: 清除计划时间
 
-- **WHEN** 用户点击计划时间选择器中的清除按钮
-- **THEN** 对应的计划时间字段被清空
+- **WHEN** 用户点击计划时间选择器中的清除按钮，或点击弹窗外的清除按钮
+- **THEN** `plan_start_time` 和 `plan_end_time` 同时被清空
+
+#### Scenario: 首次选择时清除按钮可见
+
+- **WHEN** 用户首次打开计划时间选择器并选择了一个开始时间（尚未选择结束时间）
+- **THEN** 弹窗底部的清除按钮应当可见，允许用户在完成设置前清除已选的时间
 
 ### Requirement: 前端排序下拉支持计划时间选项
 

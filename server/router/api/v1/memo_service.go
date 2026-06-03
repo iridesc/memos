@@ -1098,10 +1098,9 @@ func validatePlanTimes(startTs, endTs *int64) error {
 		return nil
 	}
 
-	// Plan start time must not be in the past (before start of today).
-	now := time.Now()
-	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
-	if *startTs < todayStart {
+	// Plan start time must not be in the past.
+	now := time.Now().Unix()
+	if *startTs < now {
 		return status.Errorf(codes.InvalidArgument, "plan_start_time cannot be in the past")
 	}
 

@@ -19,64 +19,71 @@ const PlanTimeEditor: FC<{
   const hasPlanTime = !!(planStartTime && planEndTime);
   const hasAnyPlanTime = !!(planStartTime || planEndTime);
 
-  const formatDate = (d?: Date) => d?.toISOString().slice(0, 10) ?? "";
-  const today = "2026-06-03";
+  const formatDatetime = (d?: Date) => {
+    if (!d) return "";
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const displayRange = (start?: Date, end?: Date) => {
+    if (!start || !end) return "";
+    const opts: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
+    return `${start.toLocaleString(undefined, opts)} ~ ${end.toLocaleString(undefined, opts)}`;
+  };
 
   const handleStartChange = (value: string) => {
     const newStart = value ? new Date(value) : undefined;
-    // When start is cleared, clear both; when start is set, ensure end is not before it
     if (!newStart) {
       onChange({ planStartTime: undefined, planEndTime: undefined });
     } else {
-      const newEnd = planEndTime && planEndTime < newStart ? undefined : planEndTime;
+      // Default end = start + 24h if end is not set or is before the new start
+      const defaultEnd = new Date(newStart.getTime() + 24 * 60 * 60 * 1000);
+      const newEnd = !planEndTime || planEndTime < newStart ? defaultEnd : planEndTime;
       onChange({ planStartTime: newStart, planEndTime: newEnd });
     }
   };
 
   const handleEndChange = (value: string) => {
     const newEnd = value ? new Date(value) : undefined;
-    // When end is cleared, clear both; when end is set, ensure start exists
     if (!newEnd) {
       onChange({ planStartTime: undefined, planEndTime: undefined });
     } else if (!planStartTime) {
-      // Can't set end without start
       return;
     } else {
       onChange({ planStartTime, planEndTime: newEnd });
     }
   };
 
+  const now = new Date();
+  const minDatetime = formatDatetime(now);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className={hasPlanTime ? "text-primary bg-primary/10" : ""}>
           <CalendarIcon className="w-4 h-auto" />
-          {hasPlanTime && (
-            <span className="ml-1 text-xs">
-              {planStartTime!.toLocaleDateString()} ~ {planEndTime!.toLocaleDateString()}
-            </span>
-          )}
+          {hasPlanTime && <span className="ml-1 text-xs">{displayRange(planStartTime, planEndTime)}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64">
+      <PopoverContent align="end" className="w-72">
         <div className="flex flex-col gap-3 p-1">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
             <input
-              type="date"
-              min={today}
+              type="datetime-local"
+              min={minDatetime}
               className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-              value={formatDate(planStartTime)}
+              value={formatDatetime(planStartTime)}
               onChange={(e) => handleStartChange(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t("common.plan-end")}</label>
             <input
-              type="date"
-              min={planStartTime ? formatDate(planStartTime) : today}
+              type="datetime-local"
+              min={planStartTime ? formatDatetime(planStartTime) : minDatetime}
               className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-              value={formatDate(planEndTime)}
+              value={formatDatetime(planEndTime)}
               onChange={(e) => handleEndChange(e.target.value)}
               disabled={!planStartTime}
             />

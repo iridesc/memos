@@ -187,17 +187,10 @@ const PlanTimeDisplay: React.FC<{ planStartTime?: Date; planEndTime?: Date; lang
   planEndTime,
   language,
 }) => {
-  const t = useTranslate();
-  if (!planStartTime && !planEndTime) return null;
+  if (!planStartTime || !planEndTime) return null;
 
-  let displayText: string;
-  if (planStartTime && planEndTime) {
-    displayText = `📅 ${planStartTime.toLocaleDateString(language)} ~ ${planEndTime.toLocaleDateString(language)}`;
-  } else if (planStartTime) {
-    displayText = `📅 ${t("common.plan-from")} ${planStartTime.toLocaleDateString(language)}`;
-  } else {
-    displayText = `📅 ${t("common.plan-until")} ${planEndTime!.toLocaleDateString(language)}`;
-  }
+  const opts: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
+  const displayText = `📅 ${planStartTime.toLocaleString(language, opts)} ~ ${planEndTime.toLocaleString(language, opts)}`;
 
   return <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">{displayText}</span>;
 };
