@@ -3,11 +3,11 @@ package db
 import (
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/store"
-	"github.com/usememos/memos/store/db/mysql"
-	"github.com/usememos/memos/store/db/postgres"
-	"github.com/usememos/memos/store/db/sqlite"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/store"
+	"github.com/usememos/memodo/store/db/mysql"
+	"github.com/usememos/memodo/store/db/postgres"
+	"github.com/usememos/memodo/store/db/sqlite"
 )
 
 // NewDBDriver creates new db driver based on profile.

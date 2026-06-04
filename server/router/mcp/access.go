@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/store"
 )
 
 // checkMemoAccess returns an error if the caller cannot read the memo.

@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/store/cache"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/store/cache"
 )
 
 // Store provides database access to all raw objects.

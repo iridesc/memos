@@ -82,7 +82,7 @@ web/src/
 ### Go
 - **Errors:** `errors.Wrap(err, "context")` from `github.com/pkg/errors`. Never `fmt.Errorf` (lint-enforced via forbidigo).
 - **gRPC errors:** `status.Errorf(codes.X, "message")` from service methods.
-- **Imports:** stdlib, then third-party, then local (`github.com/usememos/memos`). Enforced by goimports (runs as golangci-lint formatter).
+- **Imports:** stdlib, then third-party, then local (`github.com/usememos/memodo`). Enforced by goimports (runs as golangci-lint formatter).
 - **Comments:** All exported functions must have doc comments (godot enforced).
 
 ### Frontend

@@ -18,7 +18,7 @@ env:
   NODE_VERSION: "24"
   PNPM_VERSION: "11.0.1"
   ARTIFACT_RETENTION_DAYS: 60
-  ARTIFACT_PREFIX: memos
+  ARTIFACT_PREFIX: memodo
 
 jobs:
   prepare:
@@ -152,19 +152,19 @@ jobs:
           GOARM: ${{ matrix.goarm }}
           CGO_ENABLED: "0"
         run: |
-          output_name="memos"
+          output_name="memodo"
           if [ "$GOOS" = "windows" ]; then
-            output_name="memos.exe"
+            output_name="memodo.exe"
           fi
 
           mkdir -p build
 
           go build \
             -trimpath \
-            -ldflags="-s -w -X github.com/usememos/memos/internal/version.Version=${{ needs.prepare.outputs.version }} -X github.com/usememos/memos/internal/version.Commit=${{ github.sha }} -extldflags '-static'" \
+            -ldflags="-s -w -X github.com/usememos/memodo/internal/version.Version=${{ needs.prepare.outputs.version }} -X github.com/usememos/memodo/internal/version.Commit=${{ github.sha }} -extldflags '-static'" \
             -tags netgo,osusergo \
             -o "build/${output_name}" \
-            ./cmd/memos
+            ./cmd/memodo
 
       - name: Package binary
         env:
@@ -182,10 +182,10 @@ jobs:
 
           if [ "$GOOS" = "windows" ]; then
             artifact_name="${package_name}.zip"
-            zip -q "${artifact_name}" memos.exe
+            zip -q "${artifact_name}" memodo.exe
           else
             artifact_name="${package_name}.tar.gz"
-            tar czf "${artifact_name}" memos
+            tar czf "${artifact_name}" memodo
           fi
 
           echo "artifact_name=${artifact_name}" >> "$GITHUB_ENV"
@@ -305,7 +305,7 @@ jobs:
             COMMIT=${{ github.sha }}
           cache-from: type=gha,scope=release-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=release-${{ matrix.platform }}
-          outputs: type=image,name=neosmemo/memos,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=neosmemo/memodo,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -359,26 +359,26 @@ jobs:
           version="${{ needs.prepare.outputs.version }}"
           if [ "${{ needs.prepare.outputs.is_prerelease }}" = "true" ]; then
             docker buildx imagetools create \
-              -t "neosmemo/memos:${version}" \
-              -t "ghcr.io/usememos/memos:${version}" \
-              $(printf 'neosmemo/memos@sha256:%s ' *)
+              -t "neosmemo/memodo:${version}" \
+              -t "ghcr.io/usememos/memodo:${version}" \
+              $(printf 'neosmemo/memodo@sha256:%s ' *)
             exit 0
           fi
 
           docker buildx imagetools create \
-            -t "neosmemo/memos:${version}" \
-            -t "neosmemo/memos:${{ needs.prepare.outputs.major_minor }}" \
-            -t "neosmemo/memos:stable" \
-            -t "ghcr.io/usememos/memos:${version}" \
-            -t "ghcr.io/usememos/memos:${{ needs.prepare.outputs.major_minor }}" \
-            -t "ghcr.io/usememos/memos:stable" \
-            $(printf 'neosmemo/memos@sha256:%s ' *)
+            -t "neosmemo/memodo:${version}" \
+            -t "neosmemo/memodo:${{ needs.prepare.outputs.major_minor }}" \
+            -t "neosmemo/memodo:stable" \
+            -t "ghcr.io/usememos/memodo:${version}" \
+            -t "ghcr.io/usememos/memodo:${{ needs.prepare.outputs.major_minor }}" \
+            -t "ghcr.io/usememos/memodo:stable" \
+            $(printf 'neosmemo/memodo@sha256:%s ' *)
 
       - name: Inspect images
         run: |
-          docker buildx imagetools inspect neosmemo/memos:${{ needs.prepare.outputs.version }}
+          docker buildx imagetools inspect neosmemo/memodo:${{ needs.prepare.outputs.version }}
           if [ "${{ needs.prepare.outputs.is_prerelease }}" = "true" ]; then
             exit 0
           fi
 
-          docker buildx imagetools inspect neosmemo/memos:stable
+          docker buildx imagetools inspect neosmemo/memodo:stable

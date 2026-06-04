@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for reporting a bug. Please provide enough detail for maintainers to reproduce the issue.
 
-        **Before submitting**, please search [existing issues](https://github.com/usememos/memos/issues) to avoid duplicates.
+        **Before submitting**, please search [existing issues](https://github.com/usememos/memodo/issues) to avoid duplicates.
 
   - type: checkboxes
     id: pre-check
@@ -22,8 +22,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Memos Version
-      description: Use the version shown in **Settings > System**, the container image tag, the release binary version, or `memos --version`. Please do not write `latest` only.
+      label: Memodo Version
+      description: Use the version shown in **Settings > System**, the container image tag, the release binary version, or `memodo --version`. Please do not write `latest` only.
       placeholder: "v0.25.x, ghcr.io/usememos/memos:v0.25.x, main@abcdef, or demo site"
     validations:
       required: true

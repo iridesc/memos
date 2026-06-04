@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/store"
 )
 
 func (d *DB) UpsertInstanceSetting(ctx context.Context, upsert *store.InstanceSetting) (*store.InstanceSetting, error) {

@@ -2,13 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Memos is an open-source, self-hosted note-taking tool. Go 1.26 backend (Echo v5, Connect RPC + gRPC-Gateway), React 18 + TypeScript 6 + Vite 7 frontend, Protocol Buffers API, SQLite/MySQL/PostgreSQL.
+Memodo is an open-source, self-hosted note-taking and todo management tool. Go 1.26 backend (Echo v5, Connect RPC + gRPC-Gateway), React 18 + TypeScript 6 + Vite 7 frontend, Protocol Buffers API, SQLite/MySQL/PostgreSQL.
 
 ## Commands
 
 ```bash
 # Backend
-go run ./cmd/memos --port 8081    # Start dev server
+go run ./cmd/memodo --port 8081   # Start dev server
 go test ./...                      # Run all tests
 go test -v ./store/...             # Run store tests (all 3 DB drivers via TestContainers)
 go test -v -race ./server/...      # Run server tests with race detection
@@ -36,7 +36,7 @@ buf format -w                      # Format proto files
 ## Architecture
 
 ```
-cmd/memos/main.go           # Cobra CLI + Viper config, server init
+cmd/memodo/main.go           # Cobra CLI + Viper config, server init
 
 server/
 ├── server.go               # Echo v5 HTTP server, background runners
@@ -82,7 +82,7 @@ web/src/
 ### Go
 - **Errors:** `errors.Wrap(err, "context")` from `github.com/pkg/errors`. Never `fmt.Errorf` (lint-enforced via forbidigo).
 - **gRPC errors:** `status.Errorf(codes.X, "message")` from service methods.
-- **Imports:** stdlib, then third-party, then local (`github.com/usememos/memos`). Enforced by goimports (runs as golangci-lint formatter).
+- **Imports:** stdlib, then third-party, then local (`github.com/usememos/memodo`). Enforced by goimports (runs as golangci-lint formatter).
 - **Comments:** All exported functions must have doc comments (godot enforced).
 
 ### Frontend

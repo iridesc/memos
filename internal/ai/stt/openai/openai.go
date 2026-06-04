@@ -13,8 +13,8 @@ import (
 	openaioption "github.com/openai/openai-go/v3/option"
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/ai"
-	"github.com/usememos/memos/internal/ai/stt"
+	"github.com/usememos/memodo/internal/ai"
+	"github.com/usememos/memodo/internal/ai/stt"
 )
 
 const defaultEndpoint = "https://api.openai.com/v1"

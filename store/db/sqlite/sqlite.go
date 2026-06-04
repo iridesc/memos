@@ -9,8 +9,8 @@ import (
 	// Note: modernc.org/sqlite driver is imported in functions.go where
 	// RegisterScalarFunction is used. No blank import needed here.
 
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/store"
 )
 
 type DB struct {

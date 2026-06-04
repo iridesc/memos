@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	apiv1 "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	apiv1 "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
 )
 
 func TestCreateIdentityProvider(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/store"
 )
 
 func TestMigrationFromV0262PreservesLegacyData(t *testing.T) {

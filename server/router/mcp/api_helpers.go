@@ -5,9 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	apiv1 "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	apiv1 "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
 )
 
 func visibilityToProto(visibility store.Visibility) v1pb.Visibility {

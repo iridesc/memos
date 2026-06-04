@@ -9,8 +9,8 @@ import (
 	colorpb "google.golang.org/genproto/googleapis/type/color"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
 )
 
 func TestGetInstanceProfile(t *testing.T) {
@@ -691,7 +691,7 @@ func TestUpdateInstanceSetting(t *testing.T) {
 							AccessKeySecret: "super-secret",
 							Endpoint:        "s3.example.com",
 							Region:          "us-east-1",
-							Bucket:          "memos",
+							Bucket:          "memodo",
 						},
 					},
 				},
@@ -718,7 +718,7 @@ func TestUpdateInstanceSetting(t *testing.T) {
 							AccessKeySecret: "", // omitted / not changed
 							Endpoint:        "s3-v2.example.com",
 							Region:          "us-east-1",
-							Bucket:          "memos",
+							Bucket:          "memodo",
 						},
 					},
 				},

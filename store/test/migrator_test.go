@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/store"
 )
 
 // TestFreshInstall verifies that LATEST.sql applies correctly on a fresh database.

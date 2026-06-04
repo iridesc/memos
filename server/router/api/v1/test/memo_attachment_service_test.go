@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	apiv1 "github.com/usememos/memos/proto/gen/api/v1"
-	"github.com/usememos/memos/store"
+	apiv1 "github.com/usememos/memodo/proto/gen/api/v1"
+	"github.com/usememos/memodo/store"
 )
 
 func TestSetMemoAttachments(t *testing.T) {

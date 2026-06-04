@@ -1,4 +1,4 @@
-module github.com/usememos/memos
+module github.com/usememos/memodo
 
 go 1.26.2
 

@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/internal/profile"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	"github.com/usememos/memos/server/auth"
-	"github.com/usememos/memos/store"
-	teststore "github.com/usememos/memos/store/test"
+	"github.com/usememos/memodo/internal/profile"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	"github.com/usememos/memodo/server/auth"
+	"github.com/usememos/memodo/store"
+	teststore "github.com/usememos/memodo/store/test"
 )
 
 // newIntegrationService builds a minimal APIV1Service backed by an in-memory

@@ -6,8 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/store"
 )
 
 // suppressMentionKey is a context key used to suppress mention notification side effects

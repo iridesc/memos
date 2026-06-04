@@ -14,10 +14,10 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/server/notification"
-	"github.com/usememos/memos/store"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/server/notification"
+	"github.com/usememos/memodo/store"
 )
 
 const (

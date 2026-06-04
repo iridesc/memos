@@ -8,10 +8,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/email"
-	"github.com/usememos/memos/internal/profile"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/email"
+	"github.com/usememos/memodo/internal/profile"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/store"
 )
 
 // EmailSender sends a prepared email message with the given SMTP configuration.

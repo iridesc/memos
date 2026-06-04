@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/internal/ai"
-	"github.com/usememos/memos/internal/ai/stt"
-	sttopenai "github.com/usememos/memos/internal/ai/stt/openai"
+	"github.com/usememos/memodo/internal/ai"
+	"github.com/usememos/memodo/internal/ai/stt"
+	sttopenai "github.com/usememos/memodo/internal/ai/stt/openai"
 )
 
 func TestTranscribe(t *testing.T) {

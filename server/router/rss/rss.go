@@ -14,10 +14,10 @@ import (
 	"github.com/gorilla/feeds"
 	"github.com/labstack/echo/v5"
 
-	"github.com/usememos/memos/internal/markdown"
-	"github.com/usememos/memos/internal/profile"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/markdown"
+	"github.com/usememos/memodo/internal/profile"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/store"
 )
 
 const (

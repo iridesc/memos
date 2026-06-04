@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	"github.com/usememos/memos/internal/email"
-	apiv1 "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/email"
+	apiv1 "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/store"
 )
 
 func TestListUserNotificationsIncludesMemoCommentPayload(t *testing.T) {

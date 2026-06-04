@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	"github.com/usememos/memos/server/auth"
-	"github.com/usememos/memos/store"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	"github.com/usememos/memodo/server/auth"
+	"github.com/usememos/memodo/store"
 )
 
 // propertyJSON is the serialisable form of MemoPayload.Property.

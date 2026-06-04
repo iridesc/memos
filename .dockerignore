@@ -4,7 +4,7 @@ web/dist
 .github
 build/
 tmp/
-memos
+memodo
 *.md
 .gitignore
 .golangci.yaml

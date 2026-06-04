@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	apiv1 "github.com/usememos/memos/proto/gen/api/v1"
-	apiv1server "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
+	apiv1 "github.com/usememos/memodo/proto/gen/api/v1"
+	apiv1server "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
 )
 
 func TestUserResourceName(t *testing.T) {

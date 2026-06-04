@@ -1,6 +1,6 @@
 package v1
 
-import "github.com/usememos/memos/store"
+import "github.com/usememos/memodo/store"
 
 func buildMemoName(uid string) string {
 	return MemoNamePrefix + uid

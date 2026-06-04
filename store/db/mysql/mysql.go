@@ -7,8 +7,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/store"
 )
 
 type DB struct {

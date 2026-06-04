@@ -10,10 +10,10 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/internal/markdown"
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/store"
-	teststore "github.com/usememos/memos/store/test"
+	"github.com/usememos/memodo/internal/markdown"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/store"
+	teststore "github.com/usememos/memodo/store/test"
 )
 
 func TestPublicRSSExcludesComments(t *testing.T) {

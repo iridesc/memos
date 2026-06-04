@@ -14,12 +14,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/usememos/memos/internal/httpgetter"
-	"github.com/usememos/memos/internal/webhook"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/server/runner/memopayload"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/httpgetter"
+	"github.com/usememos/memodo/internal/webhook"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/server/runner/memopayload"
+	"github.com/usememos/memodo/store"
 )
 
 // suppressSSEKey is a context key used to suppress the SSE broadcast from

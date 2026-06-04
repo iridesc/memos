@@ -20,10 +20,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build \
       -trimpath \
-      -ldflags="-s -w -X github.com/usememos/memos/internal/version.Version=${VERSION} -X github.com/usememos/memos/internal/version.Commit=${COMMIT} -extldflags '-static'" \
+      -ldflags="-s -w -X github.com/usememos/memodo/internal/version.Version=${VERSION} -X github.com/usememos/memodo/internal/version.Commit=${COMMIT} -extldflags '-static'" \
       -tags netgo,osusergo \
-      -o memos \
-      ./cmd/memos
+      -o memodo \
+      ./cmd/memodo
 
 # Use minimal Alpine with security updates
 FROM alpine:3.21 AS monolithic
@@ -32,12 +32,12 @@ FROM alpine:3.21 AS monolithic
 RUN apk add --no-cache tzdata ca-certificates su-exec && \
     addgroup -g 10001 -S nonroot && \
     adduser -u 10001 -S -G nonroot -h /var/opt/memos nonroot && \
-    mkdir -p /var/opt/memos /usr/local/memos && \
+    mkdir -p /var/opt/memos /usr/local/memodo && \
     chown -R nonroot:nonroot /var/opt/memos
 
-# Copy binary and entrypoint to /usr/local/memos
-COPY --from=backend /backend-build/memos /usr/local/memos/memos
-COPY --from=backend --chmod=755 /backend-build/scripts/entrypoint.sh /usr/local/memos/entrypoint.sh
+# Copy binary and entrypoint to /usr/local/memodo
+COPY --from=backend /backend-build/memodo /usr/local/memodo/memodo
+COPY --from=backend --chmod=755 /backend-build/scripts/entrypoint.sh /usr/local/memodo/entrypoint.sh
 
 # Run as root to fix permissions, entrypoint will drop to nonroot
 USER root
@@ -49,8 +49,8 @@ WORKDIR /var/opt/memos
 VOLUME /var/opt/memos
 
 ENV TZ="UTC" \
-    MEMOS_PORT="5230"
+    MEMODO_PORT="5230"
 
 EXPOSE 5230
 
-ENTRYPOINT ["/usr/local/memos/entrypoint.sh", "/usr/local/memos/memos"]
+ENTRYPOINT ["/usr/local/memodo/entrypoint.sh", "/usr/local/memodo/memodo"]

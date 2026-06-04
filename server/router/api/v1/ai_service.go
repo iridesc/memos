@@ -11,13 +11,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/usememos/memos/internal/ai"
-	"github.com/usememos/memos/internal/ai/audiollm"
-	audiollmgemini "github.com/usememos/memos/internal/ai/audiollm/gemini"
-	"github.com/usememos/memos/internal/ai/stt"
-	sttopenai "github.com/usememos/memos/internal/ai/stt/openai"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
+	"github.com/usememos/memodo/internal/ai"
+	"github.com/usememos/memodo/internal/ai/audiollm"
+	audiollmgemini "github.com/usememos/memodo/internal/ai/audiollm/gemini"
+	"github.com/usememos/memodo/internal/ai/stt"
+	sttopenai "github.com/usememos/memodo/internal/ai/stt/openai"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
 )
 
 const (

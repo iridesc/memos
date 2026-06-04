@@ -15,15 +15,15 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/profile"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	apiv1 "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/server/router/fileserver"
-	"github.com/usememos/memos/server/router/frontend"
-	mcprouter "github.com/usememos/memos/server/router/mcp"
-	"github.com/usememos/memos/server/router/rss"
-	"github.com/usememos/memos/server/runner/s3presign"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/profile"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	apiv1 "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/server/router/fileserver"
+	"github.com/usememos/memodo/server/router/frontend"
+	mcprouter "github.com/usememos/memodo/server/router/mcp"
+	"github.com/usememos/memodo/server/router/rss"
+	"github.com/usememos/memodo/server/runner/s3presign"
+	"github.com/usememos/memodo/store"
 )
 
 const shutdownTimeout = 10 * time.Second

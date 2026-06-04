@@ -1,0 +1,9 @@
+services:
+  memodo:
+    image: irid/memodo:latest
+    container_name: memodo
+    ports:
+      - "5230:5230"
+    volumes:
+      - ./memodo-data:/var/opt/memos
+    restart: unless-stopped

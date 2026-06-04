@@ -23,14 +23,14 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/usememos/memos/internal/filter"
-	"github.com/usememos/memos/internal/motionphoto"
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/internal/storage/s3"
-	"github.com/usememos/memos/internal/util"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/filter"
+	"github.com/usememos/memodo/internal/motionphoto"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/internal/storage/s3"
+	"github.com/usememos/memodo/internal/util"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/store"
 )
 
 const (

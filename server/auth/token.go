@@ -19,13 +19,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/util"
+	"github.com/usememos/memodo/internal/util"
 )
 
 const (
 	// Issuer is the issuer claim in JWT tokens.
 	// This identifies tokens as issued by Memos.
-	Issuer = "memos"
+	Issuer = "memodo"
 
 	// KeyID is the key identifier used in JWT header.
 	// Version "v1" allows for future key rotation while maintaining backward compatibility.
@@ -56,7 +56,7 @@ const (
 //
 // JWT Claims include:
 // - name: Username (custom claim)
-// - iss: Issuer = "memos"
+// - iss: Issuer = "memodo"
 // - aud: Audience = "user.access-token"
 // - sub: Subject = user ID
 // - iat: Issued at time
@@ -101,7 +101,7 @@ func GenerateAccessToken(username string, userID int32, expirationTime time.Time
 //
 // Token structure:
 // Header: {"alg": "HS256", "kid": "v1", "typ": "JWT"}
-// Claims: {"name": username, "iss": "memos", "aud": [audience], "sub": userID, "iat": now, "exp": expiry}
+// Claims: {"name": username, "iss": "memodo", "aud": [audience], "sub": userID, "iat": now, "exp": expiry}
 // Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret).
 func generateToken(username string, userID int32, audience string, expirationTime time.Time, secret []byte) (string, error) {
 	registeredClaims := jwt.RegisteredClaims{

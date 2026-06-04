@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/store"
 
-	storepb "github.com/usememos/memos/proto/gen/store"
+	storepb "github.com/usememos/memodo/proto/gen/store"
 )
 
 func TestMemoStore(t *testing.T) {

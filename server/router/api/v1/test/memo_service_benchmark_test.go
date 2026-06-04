@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/internal/version"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	"github.com/usememos/memos/server/auth"
-	apiv1 "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
-	"github.com/usememos/memos/store/db"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/internal/version"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	"github.com/usememos/memodo/server/auth"
+	apiv1 "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
+	"github.com/usememos/memodo/store/db"
 )
 
 const (

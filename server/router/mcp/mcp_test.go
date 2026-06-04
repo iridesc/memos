@@ -16,12 +16,12 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/internal/profile"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/server/auth"
-	apiv1service "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
-	teststore "github.com/usememos/memos/store/test"
+	"github.com/usememos/memodo/internal/profile"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/server/auth"
+	apiv1service "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
+	teststore "github.com/usememos/memodo/store/test"
 )
 
 type testMCPService struct {
@@ -452,7 +452,7 @@ func TestMCPToolFilteringRoutesAndHeaders(t *testing.T) {
 
 	t.Run("toolsets include and exclude compose", func(t *testing.T) {
 		headers := map[string]string{
-			headerMCPToolsets:     "memos",
+			headerMCPToolsets:     "memodo",
 			headerMCPTools:        "list_tags",
 			headerMCPExcludeTools: "get_memo",
 		}
@@ -466,8 +466,8 @@ func TestMCPToolFilteringRoutesAndHeaders(t *testing.T) {
 	})
 
 	t.Run("path toolsets and readonly compose", func(t *testing.T) {
-		sessionID := initializeMCPHTTP(t, e, "/mcp/x/memos,tags/readonly", nil)
-		response := callMCPHTTP(t, e, "/mcp/x/memos,tags/readonly", sessionID, nil, "tools/list", map[string]any{})
+		sessionID := initializeMCPHTTP(t, e, "/mcp/x/memodo,tags/readonly", nil)
+		response := callMCPHTTP(t, e, "/mcp/x/memodo,tags/readonly", sessionID, nil, "tools/list", map[string]any{})
 		names := toolNamesFromListResponse(t, response)
 		requireToolPresent(t, names, "list_memos")
 		requireToolPresent(t, names, "list_tags")

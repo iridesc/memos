@@ -12,9 +12,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/internal/ai"
-	"github.com/usememos/memos/internal/ai/audiollm"
-	audiollmgemini "github.com/usememos/memos/internal/ai/audiollm/gemini"
+	"github.com/usememos/memodo/internal/ai"
+	"github.com/usememos/memodo/internal/ai/audiollm"
+	audiollmgemini "github.com/usememos/memodo/internal/ai/audiollm/gemini"
 )
 
 func TestGenerateFromAudio(t *testing.T) {

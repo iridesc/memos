@@ -3,7 +3,7 @@ package v1
 import (
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/util"
+	"github.com/usememos/memodo/internal/util"
 )
 
 // deriveSSOUsername produces the local username for a new SSO-created user.

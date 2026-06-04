@@ -3,7 +3,7 @@ package mcp
 import "github.com/mark3labs/mcp-go/mcp"
 
 var mcpToolsByToolset = map[string]map[string]struct{}{
-	"memos": stringSet(
+	"memodo": stringSet(
 		"list_memos",
 		"get_memo",
 		"create_memo",

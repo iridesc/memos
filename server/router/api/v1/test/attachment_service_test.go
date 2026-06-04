@@ -6,11 +6,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/usememos/memos/internal/testutil"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	apiv1 "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/testutil"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	apiv1 "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
 )
 
 func TestCreateAttachment(t *testing.T) {

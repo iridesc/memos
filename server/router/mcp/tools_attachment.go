@@ -9,10 +9,10 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/server/auth"
-	"github.com/usememos/memos/store"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/server/auth"
+	"github.com/usememos/memodo/store"
 )
 
 type attachmentJSON struct {

@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/store"
 )
 
 // SSEEventType represents the type of change event.

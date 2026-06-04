@@ -16,13 +16,13 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/usememos/memos/internal/idp"
-	"github.com/usememos/memos/internal/idp/oauth2"
-	"github.com/usememos/memos/internal/util"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	storepb "github.com/usememos/memos/proto/gen/store"
-	"github.com/usememos/memos/server/auth"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/idp"
+	"github.com/usememos/memodo/internal/idp/oauth2"
+	"github.com/usememos/memodo/internal/util"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	storepb "github.com/usememos/memodo/proto/gen/store"
+	"github.com/usememos/memodo/server/auth"
+	"github.com/usememos/memodo/store"
 )
 
 const (

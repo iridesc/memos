@@ -5,8 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/usememos/memos/internal/base"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/base"
+	"github.com/usememos/memodo/store"
 )
 
 // BuildUserName returns the canonical public resource name for a user.

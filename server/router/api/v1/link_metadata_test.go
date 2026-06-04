@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/usememos/memos/internal/httpgetter"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
+	"github.com/usememos/memodo/internal/httpgetter"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
 )
 
 func TestGetLinkMetadata(t *testing.T) {

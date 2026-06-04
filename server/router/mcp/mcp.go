@@ -10,10 +10,10 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/server/auth"
-	apiv1 "github.com/usememos/memos/server/router/api/v1"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/profile"
+	"github.com/usememos/memodo/server/auth"
+	apiv1 "github.com/usememos/memodo/server/router/api/v1"
+	"github.com/usememos/memodo/store"
 )
 
 const (

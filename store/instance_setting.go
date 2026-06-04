@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	storepb "github.com/usememos/memos/proto/gen/store"
+	storepb "github.com/usememos/memodo/proto/gen/store"
 )
 
 type InstanceSetting struct {

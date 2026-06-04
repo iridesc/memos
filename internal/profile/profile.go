@@ -60,7 +60,7 @@ func (p *Profile) Validate() error {
 	// Set default data directory if not specified
 	if p.Data == "" {
 		if runtime.GOOS == "windows" {
-			p.Data = filepath.Join(os.Getenv("ProgramData"), "memos")
+			p.Data = filepath.Join(os.Getenv("ProgramData"), "memodo")
 		} else {
 			// On Linux/macOS, check if /var/opt/memos exists and is writable (Docker scenario)
 			if info, err := os.Stat("/var/opt/memos"); err == nil && info.IsDir() {

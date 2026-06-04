@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/usememos/memos/internal/profile"
+	"github.com/usememos/memodo/internal/profile"
 )
 
 func TestMetadataInterceptorForwardsSecurityHeaders(t *testing.T) {

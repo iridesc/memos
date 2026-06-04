@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/usememos/memos/server/notification"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/server/notification"
+	"github.com/usememos/memodo/store"
 )
 
 func (s *APIV1Service) createInboxWithEmailNotification(ctx context.Context, inbox *store.Inbox) (*store.Inbox, error) {

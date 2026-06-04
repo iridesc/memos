@@ -8,7 +8,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 
-	mast "github.com/usememos/memos/internal/markdown/ast"
+	mast "github.com/usememos/memodo/internal/markdown/ast"
 )
 
 const (

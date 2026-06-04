@@ -12,12 +12,12 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 	"golang.org/x/sync/semaphore"
 
-	"github.com/usememos/memos/internal/markdown"
-	"github.com/usememos/memos/internal/profile"
-	v1pb "github.com/usememos/memos/proto/gen/api/v1"
-	"github.com/usememos/memos/server/auth"
-	"github.com/usememos/memos/server/notification"
-	"github.com/usememos/memos/store"
+	"github.com/usememos/memodo/internal/markdown"
+	"github.com/usememos/memodo/internal/profile"
+	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
+	"github.com/usememos/memodo/server/auth"
+	"github.com/usememos/memodo/server/notification"
+	"github.com/usememos/memodo/store"
 )
 
 const maxAPIRequestBytes = 256 << 20
