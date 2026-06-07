@@ -31,6 +31,7 @@ const Editor = forwardRef(function Editor(props: EditorProps, ref: React.Forward
     initialContent,
     placeholder,
     onPaste,
+    onFocus,
     onContentChange: handleContentChangeCallback,
     isFocusMode,
     isInIME = false,
@@ -224,6 +225,7 @@ const Editor = forwardRef(function Editor(props: EditorProps, ref: React.Forward
         ref={editorRef}
         onPaste={handleEditorPaste}
         onInput={handleEditorInput}
+        onFocus={onFocus}
         onCompositionStart={onCompositionStart}
         onCompositionEnd={onCompositionEnd}
       ></textarea>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInstance } from "@/contexts/InstanceContext";
+import { useMemoFilterContext } from "@/contexts/MemoFilterContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { memoKeys } from "@/hooks/useMemoQueries";
 import { userKeys } from "@/hooks/useUserQueries";
@@ -78,6 +79,30 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
     defaultPlanTimes,
   });
   const isDraftCacheEnabled = !memo;
+
+  // Tag auto-insert on editor focus: when a single tag filter is active and the
+  // editor is empty, pre-fill `#tagname ` so the user doesn't have to type it.
+  const { filters } = useMemoFilterContext();
+  const tagAutoInsertedRef = useRef(false);
+
+  // Reset the auto-insert flag when content becomes empty (user cleared it after save).
+  useEffect(() => {
+    if (!state.content) {
+      tagAutoInsertedRef.current = false;
+    }
+  }, [state.content]);
+
+  const handleEditorFocus = useCallback(() => {
+    // Only auto-insert in create mode (not edit), when content is empty,
+    // not already done, and exactly one tag filter is active.
+    if (memo) return;
+    if (state.content) return;
+    if (tagAutoInsertedRef.current) return;
+    const tagFilters = filters.filter((f) => f.factor === "tagSearch");
+    if (tagFilters.length !== 1) return;
+    tagAutoInsertedRef.current = true;
+    dispatch(actions.updateContent(`#${tagFilters[0].value} `));
+  }, [memo, state.content, filters, actions, dispatch]);
 
   // Auto-save content to localStorage
   const { discardDraft } = useAutoSave(state.content, currentUser?.name ?? "", cacheKey, isInitialized && isDraftCacheEnabled);
@@ -335,7 +360,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
         )}
 
         {/* Editor content grows to fill available space in focus mode */}
-        <EditorContent ref={editorRef} placeholder={placeholder} />
+        <EditorContent ref={editorRef} placeholder={placeholder} onFocus={handleEditorFocus} />
 
         {isAudioRecorderOpen &&
           (state.audioRecorder.status === "recording" || state.audioRecorder.status === "requesting_permission" || isTranscribingAudio) && (

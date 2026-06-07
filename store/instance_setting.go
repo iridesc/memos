@@ -160,6 +160,9 @@ func (s *Store) GetInstanceMemoRelatedSetting(ctx context.Context) (*storepb.Ins
 	instanceMemoRelatedSetting := &storepb.InstanceMemoRelatedSetting{}
 	if instanceSetting != nil {
 		instanceMemoRelatedSetting = instanceSetting.GetMemoRelatedSetting()
+	} else {
+		// Default: enable double-click to edit for new instances.
+		instanceMemoRelatedSetting.EnableDoubleClickEdit = true
 	}
 	if instanceMemoRelatedSetting.ContentLengthLimit < DefaultContentLengthLimit {
 		instanceMemoRelatedSetting.ContentLengthLimit = DefaultContentLengthLimit

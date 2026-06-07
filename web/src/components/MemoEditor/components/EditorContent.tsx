@@ -5,7 +5,7 @@ import { useEditorContext } from "../state";
 import type { EditorContentProps } from "../types";
 import type { LocalFile } from "../types/attachment";
 
-export const EditorContent = forwardRef<EditorRefActions, EditorContentProps>(({ placeholder }, ref) => {
+export const EditorContent = forwardRef<EditorRefActions, EditorContentProps>(({ placeholder, onFocus }, ref) => {
   const { state, actions, dispatch } = useEditorContext();
   const { createBlobUrl } = useBlobUrls();
 
@@ -67,6 +67,7 @@ export const EditorContent = forwardRef<EditorRefActions, EditorContentProps>(({
         isInIME={state.ui.isComposing}
         onContentChange={handleContentChange}
         onPaste={handlePaste}
+        onFocus={onFocus}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
       />

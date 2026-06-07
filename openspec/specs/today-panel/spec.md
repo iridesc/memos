@@ -2,7 +2,7 @@
 
 ## Purpose
 
-侧边栏第一位的「今天」聚焦面板，展示计划时间（开始或结束）在今日的所有 memo，支持拖拽排序和快捷录入。
+侧边栏第一位的「今天」聚焦面板，展示计划开始时间在今日的所有 memo，支持拖拽排序和快捷录入。
 
 ## Requirements
 
@@ -22,17 +22,27 @@
 
 ### Requirement: 今日计划时间筛选
 
-Today 页面应当筛选 `plan_start_time` 或 `plan_end_time` 在今天的 memo，同时返回未完成和已完成状态的 memo。
+Today 页面应当仅筛选 `plan_start_time` 在今天的 memo。`plan_end_time` 不作为筛选条件，保证每条出现在今日视图的 memo 都有 plan_start_time。
 
 #### Scenario: 筛选逻辑
 
 - **WHEN** 用户进入 Today 页面
-- **THEN** 系统调用 `ListMemos`，使用 CEL filter `(plan_start_ts >= today_0:00 && plan_start_ts < tomorrow_0:00) || (plan_end_ts >= today_0:00 && plan_end_ts < tomorrow_0:00)`
+- **THEN** 系统调用 `ListMemos`，使用 CEL filter `plan_start_ts >= today_0:00 && plan_start_ts < tomorrow_0:00`
 
 #### Scenario: 无今日计划
 
 - **WHEN** 当天没有匹配的计划 memo
 - **THEN** 页面展示空状态，编辑器和完成区折叠条均不展示
+
+### Requirement: 计划时间排序
+
+Today 页面的 memo 列表应当固定按 `plan_start_time` 升序排列，不受全局视图排序设置影响。这是拖拽排序正确工作的前提——拖拽修改 plan_start_time 后 memo 自然会停留在新位置。
+
+#### Scenario: 排序规则
+
+- **WHEN** 用户进入 Today 页面
+- **THEN** 服务端使用 `orderBy: "plan_start_time asc"` 拉取数据
+- **AND** 客户端按 `plan_start_time` 升序排列，不依赖全局 `timeBasis` 设置
 
 ### Requirement: Today 页面无侧边栏浏览区
 

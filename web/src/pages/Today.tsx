@@ -2,24 +2,23 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useCallback, useMemo } from "react";
 import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
-import { useMemoFilters, useMemoSorting } from "@/hooks";
+import { useMemoFilters } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useUpdateMemo } from "@/hooks/useMemoQueries";
-import { State } from "@/types/proto/api/v1/common_pb";
 import { Memo } from "@/types/proto/api/v1/memo_service_pb";
 
 const Today = () => {
   const user = useCurrentUser();
   const updateMemo = useUpdateMemo();
 
-  // Build today filter: plan_start_ts or plan_end_ts falls within today.
+  // Build today filter: only memos whose plan_start_ts falls within today.
   const todayFilter = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const startTs = Math.floor(startOfDay.getTime() / 1000);
     const endTs = Math.floor(endOfDay.getTime() / 1000);
-    return `(plan_start_ts >= ${startTs} && plan_start_ts < ${endTs}) || (plan_end_ts >= ${startTs} && plan_end_ts < ${endTs})`;
+    return `plan_start_ts >= ${startTs} && plan_start_ts < ${endTs}`;
   }, []);
 
   const userFilter = useMemoFilters({
@@ -35,10 +34,12 @@ const Today = () => {
     return todayFilter;
   }, [todayFilter, userFilter]);
 
-  const { listSort, orderBy } = useMemoSorting({
-    pinnedFirst: false,
-    state: State.NORMAL,
-  });
+  // Sort by plan_start_time ascending so drag-and-drop reorder works correctly.
+  // Filter guarantees plan_start_ts is non-null for all memos in this view.
+  const orderBy = "plan_start_time asc";
+  const listSort = useCallback((memos: Memo[]): Memo[] => {
+    return [...memos].sort((a, b) => timestampDate(a.planStartTime!).getTime() - timestampDate(b.planStartTime!).getTime());
+  }, []);
 
   // Handle drag-and-drop reorder: compute new plan times based on neighbors.
   const handleReorder = useCallback(

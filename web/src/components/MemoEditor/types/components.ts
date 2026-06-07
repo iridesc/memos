@@ -28,6 +28,7 @@ export interface MemoEditorProps {
 
 export interface EditorContentProps {
   placeholder?: string;
+  onFocus?: () => void;
 }
 
 export interface EditorToolbarProps {
@@ -89,6 +90,7 @@ export interface EditorProps {
   placeholder: string;
   onContentChange: (content: string) => void;
   onPaste: (event: ClipboardEvent) => void;
+  onFocus?: () => void;
   isFocusMode?: boolean;
   isInIME?: boolean;
   onCompositionStart?: () => void;

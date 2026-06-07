@@ -32,3 +32,5 @@ dist
 # Frontend test coverage output (Vitest + @vitest/coverage-v8).
 web/coverage/
 memos_prod.db*
+.codegraph/.gitignore
+.codegraph/daemon.pid
