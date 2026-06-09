@@ -1,15 +1,11 @@
-import { CheckCircle2Icon, CircleIcon } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import { useInstance } from "@/contexts/InstanceContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { useUpdateMemo } from "@/hooks/useMemoQueries";
 import { useUser } from "@/hooks/useUserQueries";
 import { findTagMetadata } from "@/lib/tag";
 import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
-import { useTranslate } from "@/utils/i18n";
 import { isSuperUser } from "@/utils/user";
 import MemoShareImageDialog from "../MemoActionMenu/MemoShareImageDialog";
 import MemoEditor from "../MemoEditor";
@@ -25,32 +21,13 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [cardWidth, setCardWidth] = useState(0);
-  const t = useTranslate();
-  const updateMemo = useUpdateMemo();
 
   const currentUser = useCurrentUser();
   const { tagsSetting } = useInstance();
   const creator = useUser(memoData.creator).data;
   const isArchived = memoData.state === State.ARCHIVED;
-  const isCompleted = memoData.state === State.COMPLETED;
   const readonly = memoData.creator !== currentUser?.name && !isSuperUser(currentUser);
   const parentPage = parentPageProp || "/";
-  const hasPlanTime = Boolean(memoData.planStartTime && memoData.planEndTime);
-  const showCompleteCheckbox = hasPlanTime && !isArchived && !readonly;
-
-  const handleToggleComplete = useCallback(async () => {
-    const newState = isCompleted ? State.NORMAL : State.COMPLETED;
-    const msgKey = isCompleted ? "message.uncompleted-successfully" : "message.completed-successfully";
-    try {
-      await updateMemo.mutateAsync({
-        update: { name: memoData.name, state: newState },
-        updateMask: ["state"],
-      });
-      toast.success(t(msgKey as Parameters<typeof t>[0]));
-    } catch {
-      // error handled by mutation
-    }
-  }, [isCompleted, memoData.name, updateMemo, t]);
 
   // Blur content when any tag has blur_content enabled in the instance tag settings.
   const [showBlurredContent, setShowBlurredContent] = useState(false);
@@ -147,20 +124,6 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
       <MemoHeader showCreator={showCreator} showVisibility={showVisibility} showPinned={showPinned} />
 
       <MemoBody compact={compact} />
-
-      {showCompleteCheckbox && (
-        <div className="w-full flex justify-end mt-1">
-          <button
-            type="button"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            onClick={handleToggleComplete}
-            title={isCompleted ? t("common.mark-uncompleted") : t("common.mark-completed")}
-          >
-            {isCompleted ? <CheckCircle2Icon className="w-4 h-4 text-primary" /> : <CircleIcon className="w-4 h-4" />}
-            <span>{isCompleted ? t("common.completed") : t("common.mark-completed")}</span>
-          </button>
-        </div>
-      )}
 
       <PreviewImageDialog
         open={previewState.open}

@@ -22,6 +22,8 @@ export interface MemoEditorProps {
   defaultCreateTime?: Date;
   /** Default plan start/end times for new memos (e.g., auto-filled in Today view). */
   defaultPlanTimes?: { planStartTime: Date; planEndTime: Date };
+  /** Called when the editor enters or leaves editing state (content non-empty). */
+  onEditingStateChange?: (isEditing: boolean) => void;
   onConfirm?: (memoName: string) => void;
   onCancel?: () => void;
 }

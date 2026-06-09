@@ -1,10 +1,4 @@
-# Plan Time Relative Display
-
-## Purpose
-
-将 memo 卡片的计划时间以三态相对时间格式展示，替代原有的绝对日期时间格式。同时移除卡片上的创建/更新时间文字，减少视觉冗余。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Plan time displayed with three-state relative format
 
@@ -69,30 +63,3 @@
 
 - **WHEN** 时间差值为 2 小时整（120 分钟）
 - **THEN** 显示「2小时」而非「2.0小时」
-
-### Requirement: Creation/update time removed from card display
-
-系统不应当在 memo 卡片 Header 上展示创建时间或更新时间文字。memo 卡片 Header 应当仅展示：
-- Creator 头像和名称（当启用时）
-- 计划时间（当设置时，以相对格式展示）
-
-所有精确时间戳（创建、更新、计划开始、计划结束）应当通过 hover tooltip 可访问。
-
-#### Scenario: 有计划时间的 memo
-
-- **WHEN** memo 设置了计划时间
-- **THEN** 卡片 Header 展示 creator（若启用）和相对计划时间；不展示创建时间文字
-
-#### Scenario: 无计划时间的 memo
-
-- **WHEN** memo 未设置计划时间
-- **THEN** 卡片 Header 仅展示 creator（若启用）；无时间文字可见
-
-### Requirement: Absolute times preserved in tooltip
-
-系统应当继续在 hover tooltip 中展示绝对计划开始和结束时间，格式为完整本地化日期时间字符串。
-
-#### Scenario: Hover tooltip 展示绝对时间
-
-- **WHEN** 用户将鼠标悬停在相对计划时间显示区域上
-- **THEN** tooltip 展示精确的计划开始和计划结束日期时间

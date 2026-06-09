@@ -43,6 +43,7 @@
     "create": "创建",
     "created-at": "创建时间",
     "database": "数据库",
+    "default": "默认",
     "day": "天",
     "days": {
       "fri": "五",
@@ -227,6 +228,11 @@
       "has-link": "有链接",
       "has-task-list": "有待办",
       "label": "过滤器"
+    },
+    "group": {
+      "expired": "已过期",
+      "planned": "计划中",
+      "unscheduled": "待安排"
     },
     "links": "链接",
     "load-more": "加载更多",

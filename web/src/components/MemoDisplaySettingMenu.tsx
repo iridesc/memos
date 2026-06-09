@@ -12,10 +12,10 @@ interface Props {
 function MemoDisplaySettingMenu({ className }: Props) {
   const t = useTranslate();
   const { orderByTimeAsc, timeBasis, setTimeBasis, toggleSortOrder } = useView();
-  const isApplying = orderByTimeAsc !== false || timeBasis !== "create_time";
+  const isApplying = orderByTimeAsc !== false || timeBasis !== "smart";
 
   const handleTimeBasisChange = (value: string) => {
-    if (value === "update_time" || value === "plan_start_time" || value === "plan_end_time") {
+    if (value === "smart" || value === "update_time" || value === "plan_start_time" || value === "plan_end_time") {
       setTimeBasis(value);
     } else {
       setTimeBasis("create_time");
@@ -36,6 +36,7 @@ function MemoDisplaySettingMenu({ className }: Props) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="smart">{t("common.default")}</SelectItem>
                 <SelectItem value="create_time">{t("common.created-at")}</SelectItem>
                 <SelectItem value="update_time">{t("common.last-updated-at")}</SelectItem>
                 <SelectItem value="plan_start_time">{t("common.plan-start")}</SelectItem>

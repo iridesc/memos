@@ -1,9 +1,10 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { closestCenter, DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
-import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MentionResolutionProvider } from "@/components/MemoContent/MentionResolutionContext";
 import { deriveDefaultCreateTimeFromFilters } from "@/components/MemoEditor/utils/deriveDefaultCreateTime";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import MemoEditor from "../MemoEditor";
 import MemoFilters from "../MemoFilters";
 import Placeholder from "../Placeholder";
 import Skeleton from "../Skeleton";
+import { ListEditBridge, ListEditProvider } from "./ListEditContext";
 
 interface Props {
   renderer: (memo: Memo) => ReactElement;
@@ -35,6 +37,8 @@ interface Props {
   editorCacheKey?: string;
   draggable?: boolean;
   onReorder?: (fromIndex: number, toIndex: number, memo: Memo, reordered: Memo[]) => void;
+  /** When true, insert visual group separators between smart-sort tiers (expired / planned / unscheduled). */
+  smartGroups?: boolean;
 }
 
 const COMPLETED_COLLAPSED_KEY = "memos-completed-collapsed";
@@ -95,6 +99,10 @@ const PagedMemoList = (props: Props) => {
   const queryClient = useQueryClient();
   const { filters } = useMemoFilterContext();
 
+  // Track whether any MemoEditor in this list has non-empty content, to disable drag-and-drop.
+  // Uses ListEditProvider context + bridge so both the inline editor and in-place memo editors can report.
+  const [isEditing, setIsEditing] = useState(false);
+
   const showMemoEditor = props.showMemoEditor ?? false;
   const defaultCreateTime = useMemo(() => deriveDefaultCreateTimeFromFilters(filters), [filters]);
   const isTodayEditor = props.editorCacheKey === "today-memo-editor";
@@ -144,6 +152,38 @@ const PagedMemoList = (props: Props) => {
     () => (shouldSplit ? sortedMemoList.filter((m) => m.state === State.COMPLETED) : []),
     [sortedMemoList, shouldSplit],
   );
+
+  // Smart group separators: insert labels between tiers when in smart mode.
+  const getSmartTier = useCallback((m: Memo): number => {
+    if (m.state === State.COMPLETED) return 4;
+    if (!m.planStartTime || !m.planEndTime) return 3;
+    const now = new Date().getTime();
+    if (timestampDate(m.planEndTime).getTime() < now) return 1;
+    return 2;
+  }, []);
+
+  const GROUP_LABELS: Record<number, string> = {
+    1: t("memo.group.expired"),
+    2: t("memo.group.planned"),
+    3: t("memo.group.unscheduled"),
+  };
+
+  type RenderItem = { key: string; kind: "memo"; memo: Memo } | { key: string; kind: "separator"; tier: number };
+
+  const activeRenderItems: RenderItem[] = useMemo(() => {
+    if (!props.smartGroups) return activeMemos.map((m) => ({ key: m.name, kind: "memo" as const, memo: m }));
+    const items: RenderItem[] = [];
+    let lastTier = -1;
+    for (const m of activeMemos) {
+      const tier = getSmartTier(m);
+      if (tier !== lastTier && GROUP_LABELS[tier]) {
+        items.push({ key: `sep-${tier}`, kind: "separator", tier });
+      }
+      items.push({ key: m.name, kind: "memo", memo: m });
+      lastTier = tier;
+    }
+    return items;
+  }, [activeMemos, props.smartGroups, getSmartTier, GROUP_LABELS]);
 
   // Drag-and-drop sensors.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -230,71 +270,88 @@ const PagedMemoList = (props: Props) => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const children = (
-    <MentionResolutionProvider contents={sortedMemoList.map((memo) => memo.content)}>
-      <div className="flex flex-col justify-start w-full max-w-2xl mx-auto">
-        {/* Show skeleton loader during initial load */}
-        {isLoading ? (
-          <Skeleton showCreator={props.showCreator} count={4} />
-        ) : (
-          <>
-            {showMemoEditor ? (
-              <MemoEditor
-                className="mb-2"
-                cacheKey={props.editorCacheKey || "home-memo-editor"}
-                placeholder={t("editor.any-thoughts")}
-                defaultCreateTime={defaultCreateTime}
-                defaultPlanTimes={defaultPlanTimes}
-              />
-            ) : null}
-            {props.showFilters !== false && <MemoFilters />}
-            {props.draggable ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={activeMemos.map((m) => m.name)} strategy={verticalListSortingStrategy}>
-                  {activeMemos.map((memo) => (
-                    <SortableMemoItem key={memo.name} id={memo.name}>
-                      {props.renderer(memo)}
-                    </SortableMemoItem>
-                  ))}
-                </SortableContext>
-              </DndContext>
-            ) : (
-              activeMemos.map((memo) => props.renderer(memo))
-            )}
+    <ListEditProvider>
+      <ListEditBridge onChange={setIsEditing} />
+      <MentionResolutionProvider contents={sortedMemoList.map((memo) => memo.content)}>
+        <div className="flex flex-col justify-start w-full max-w-2xl mx-auto">
+          {/* Show skeleton loader during initial load */}
+          {isLoading ? (
+            <Skeleton showCreator={props.showCreator} count={4} />
+          ) : (
+            <>
+              {showMemoEditor ? (
+                <MemoEditor
+                  className="mb-2"
+                  cacheKey={props.editorCacheKey || "home-memo-editor"}
+                  placeholder={t("editor.any-thoughts")}
+                  defaultCreateTime={defaultCreateTime}
+                  defaultPlanTimes={defaultPlanTimes}
+                />
+              ) : null}
+              {props.showFilters !== false && <MemoFilters />}
+              {props.draggable ? (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={activeMemos.map((m) => m.name)} strategy={verticalListSortingStrategy}>
+                    {activeRenderItems.map((item) =>
+                      item.kind === "memo" ? (
+                        <SortableMemoItem key={item.key} id={item.memo.name} disabled={isEditing}>
+                          {props.renderer(item.memo)}
+                        </SortableMemoItem>
+                      ) : (
+                        <div key={item.key} className="px-2 pt-3 pb-1 text-xs text-muted-foreground">
+                          {GROUP_LABELS[item.tier]}
+                        </div>
+                      ),
+                    )}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                activeRenderItems.map((item) =>
+                  item.kind === "memo" ? (
+                    <Fragment key={item.key}>{props.renderer(item.memo)}</Fragment>
+                  ) : (
+                    <div key={item.key} className="px-2 pt-3 pb-1 text-xs text-muted-foreground">
+                      {GROUP_LABELS[item.tier]}
+                    </div>
+                  ),
+                )
+              )}
 
-            {/* Completed section (collapsible) */}
-            {shouldSplit && completedMemos.length > 0 && (
-              <div className="mt-2 mb-2">
-                <button
-                  type="button"
-                  className="w-full flex items-center gap-1 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                  onClick={toggleCompleted}
-                >
-                  {completedCollapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-                  <span>{t("common.completed-count", { count: completedMemos.length })}</span>
-                </button>
-                {!completedCollapsed && <div className="mt-1">{completedMemos.map((memo) => props.renderer(memo))}</div>}
-              </div>
-            )}
+              {/* Completed section (collapsible) */}
+              {shouldSplit && completedMemos.length > 0 && (
+                <div className="mt-2 mb-2">
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-1 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                    onClick={toggleCompleted}
+                  >
+                    {completedCollapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                    <span>{t("common.completed-count", { count: completedMemos.length })}</span>
+                  </button>
+                  {!completedCollapsed && <div className="mt-1">{completedMemos.map((memo) => props.renderer(memo))}</div>}
+                </div>
+              )}
 
-            {/* Loading indicator for pagination */}
-            {isFetchingNextPage && <Skeleton showCreator={props.showCreator} count={2} />}
+              {/* Loading indicator for pagination */}
+              {isFetchingNextPage && <Skeleton showCreator={props.showCreator} count={2} />}
 
-            {/* Empty state or back-to-top button */}
-            {!isFetchingNextPage && (
-              <>
-                {!hasNextPage && sortedMemoList.length === 0 ? (
-                  <Placeholder variant="empty" message={t("message.no-data")} />
-                ) : (
-                  <div className="w-full opacity-70 flex flex-row justify-center items-center my-4">
-                    <BackToTop />
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </MentionResolutionProvider>
+              {/* Empty state or back-to-top button */}
+              {!isFetchingNextPage && (
+                <>
+                  {!hasNextPage && sortedMemoList.length === 0 ? (
+                    <Placeholder variant="empty" message={t("message.no-data")} />
+                  ) : (
+                    <div className="w-full opacity-70 flex flex-row justify-center items-center my-4">
+                      <BackToTop />
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </MentionResolutionProvider>
+    </ListEditProvider>
   );
 
   return children;
@@ -334,19 +391,19 @@ const BackToTop = () => {
   );
 };
 
-const SortableMemoItem: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+const SortableMemoItem: React.FC<{ id: string; disabled?: boolean; children: React.ReactNode }> = ({ id, disabled, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : undefined,
     position: "relative",
-    cursor: "grab",
+    cursor: disabled ? undefined : "grab",
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...(disabled ? {} : listeners)}>
       {children}
     </div>
   );

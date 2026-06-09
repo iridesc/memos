@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
 
-export type MemoTimeBasis = "create_time" | "update_time" | "plan_start_time" | "plan_end_time";
+export type MemoTimeBasis = "smart" | "create_time" | "update_time" | "plan_start_time" | "plan_end_time";
 
 interface ViewState {
   orderByTimeAsc: boolean;
@@ -30,7 +30,8 @@ export function ViewProvider({ children }: { children: ReactNode }) {
           cachedTimeBasis === "create_time" ||
           cachedTimeBasis === "update_time" ||
           cachedTimeBasis === "plan_start_time" ||
-          cachedTimeBasis === "plan_end_time"
+          cachedTimeBasis === "plan_end_time" ||
+          cachedTimeBasis === "smart"
             ? cachedTimeBasis
             : undefined;
         return {
@@ -41,11 +42,11 @@ export function ViewProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.warn("Failed to load view settings from localStorage:", error);
     }
-    return { orderByTimeAsc: false };
+    return { orderByTimeAsc: false, timeBasis: "smart" };
   };
 
   const [viewState, setViewState] = useState(getInitialState);
-  const timeBasis = viewState.timeBasis ?? "create_time";
+  const timeBasis = viewState.timeBasis ?? "smart";
 
   const persistToStorage = (newState: ViewState) => {
     try {

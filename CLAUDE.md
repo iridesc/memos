@@ -104,3 +104,5 @@ web/src/
 - **proto-linter.yml:** buf lint + format check
 - **release.yml:** On version tags, builds frontend once, packages binaries for Linux/macOS/Windows, and publishes release container images/tags
 - **Docker:** Multi-stage (`scripts/Dockerfile`), Alpine 3.21, non-root user, port 5230, multi-arch (amd64/arm64/arm/v7)
+- **Container Build:** `podman build --platform linux/amd64 -f scripts/Dockerfile -t docker.io/irid/memodo:latest .`
+- **Container Push:** `podman push docker.io/irid/memodo:latest`

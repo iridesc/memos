@@ -1,11 +1,14 @@
-import { BookmarkIcon } from "lucide-react";
+import { BookmarkIcon, CheckIcon } from "lucide-react";
 import { useCallback, useState } from "react";
+import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUpdateMemo } from "@/hooks/useMemoQueries";
 import useNavigateTo from "@/hooks/useNavigateTo";
 import i18n from "@/i18n";
 import { formatRelativePlanTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { State } from "@/types/proto/api/v1/common_pb";
 import { Visibility } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityToString } from "@/utils/memo";
@@ -23,6 +26,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
 
   const { memo, creator, currentUser, parentPage, isArchived, readonly, openEditor } = useMemoViewContext();
   const { createTime, updateTime, planStartTime, planEndTime } = useMemoViewDerived();
+  const updateMemo = useUpdateMemo();
 
   const navigateTo = useNavigateTo();
   const handleGotoMemoDetailPage = useCallback(() => {
@@ -30,6 +34,25 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
   }, [memo.name, parentPage, navigateTo]);
 
   const { unpinMemo } = useMemoActions(memo);
+
+  // Complete toggle — show when memo has plan times and user can edit.
+  const isCompleted = memo.state === State.COMPLETED;
+  const hasPlanTime = Boolean(planStartTime && planEndTime);
+  const showCompleteCheckbox = hasPlanTime && !isArchived && !readonly;
+
+  const handleToggleComplete = useCallback(async () => {
+    const newState = isCompleted ? State.NORMAL : State.COMPLETED;
+    const msgKey = isCompleted ? "message.uncompleted-successfully" : "message.completed-successfully";
+    try {
+      await updateMemo.mutateAsync({
+        update: { name: memo.name, state: newState },
+        updateMask: ["state"],
+      });
+      toast.success(t(msgKey as Parameters<typeof t>[0]));
+    } catch {
+      // error handled by mutation
+    }
+  }, [isCompleted, memo.name, updateMemo, t]);
 
   const timeTooltip = {
     createdAt: createTime ? `${t("common.created-at")}: ${createTime.toLocaleString(i18n.language)}` : undefined,
@@ -62,6 +85,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
         <PlanTimeDisplay
           planStartTime={planStartTime}
           planEndTime={planEndTime}
+          isCompleted={isCompleted}
           timeTooltip={timeTooltip}
           onGotoDetail={handleGotoMemoDetailPage}
         />
@@ -74,6 +98,16 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
             memo={memo}
             onOpenChange={setReactionSelectorOpen}
           />
+        )}
+        {showCompleteCheckbox && (
+          <button
+            type="button"
+            className="shrink-0 hover:opacity-80 transition-opacity"
+            onClick={handleToggleComplete}
+            title={isCompleted ? t("common.mark-uncompleted") : t("common.mark-completed")}
+          >
+            <CheckIcon className={cn("w-4 h-4", isCompleted ? "text-green-500" : "text-muted-foreground")} />
+          </button>
         )}
 
         {showVisibility && memo.visibility !== Visibility.PRIVATE && (
@@ -132,18 +166,37 @@ const TimeTooltip = ({ children, content }: { children: React.ReactElement; cont
 const PlanTimeDisplay: React.FC<{
   planStartTime?: Date;
   planEndTime?: Date;
+  isCompleted?: boolean;
   timeTooltip: TimeTooltipContent;
   onGotoDetail: () => void;
-}> = ({ planStartTime, planEndTime, timeTooltip, onGotoDetail }) => {
+}> = ({ planStartTime, planEndTime, isCompleted, timeTooltip, onGotoDetail }) => {
   const t = useTranslate();
 
   if (!planStartTime || !planEndTime) return null;
 
+  // Completed memos: show green "已完成" instead of relative time.
+  if (isCompleted) {
+    return (
+      <TimeTooltip content={timeTooltip}>
+        <button
+          type="button"
+          className="text-xs ml-2 whitespace-nowrap select-none cursor-pointer transition-colors text-left text-green-500 font-bold"
+          onClick={onGotoDetail}
+        >
+          {t("common.completed")}
+        </button>
+      </TimeTooltip>
+    );
+  }
+
   const result = formatRelativePlanTime(planStartTime, planEndTime, new Date());
   let displayText: string;
 
+  let isExpired = false;
+
   switch (result.state) {
     case "expired":
+      isExpired = true;
       displayText = t("common.plan-time.expired");
       break;
     case "in-progress":
@@ -176,11 +229,13 @@ const PlanTimeDisplay: React.FC<{
 
   if (!displayText) return null;
 
+  const expiredClass = isExpired ? "text-destructive font-bold hover:opacity-80" : "text-muted-foreground hover:text-foreground";
+
   return (
     <TimeTooltip content={timeTooltip}>
       <button
         type="button"
-        className="text-xs text-muted-foreground ml-2 whitespace-nowrap select-none cursor-pointer hover:text-foreground transition-colors text-left"
+        className={`text-xs ml-2 whitespace-nowrap select-none cursor-pointer transition-colors text-left ${expiredClass}`}
         onClick={onGotoDetail}
       >
         {displayText}

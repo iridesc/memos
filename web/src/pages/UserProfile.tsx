@@ -7,6 +7,7 @@ import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { useView } from "@/contexts/ViewContext";
 import { useMemoFilters, useMemoSorting } from "@/hooks";
 import { useUser } from "@/hooks/useUserQueries";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,7 @@ const UserProfile = () => {
     includePinned: true,
   });
 
+  const { timeBasis } = useView();
   const { listSort, orderBy } = useMemoSorting({
     pinnedFirst: true,
     state: State.NORMAL,
@@ -137,6 +139,7 @@ const UserProfile = () => {
                   listSort={listSort}
                   orderBy={orderBy}
                   filter={memoFilter}
+                  smartGroups={timeBasis === "smart"}
                 />
               ) : (
                 <div className="">

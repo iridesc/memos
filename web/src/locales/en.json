@@ -76,6 +76,7 @@
     "create": "Create",
     "created-at": "Created at",
     "database": "Database",
+    "default": "Smart",
     "day": "Day",
     "days": {
       "fri": "Fri",
@@ -266,6 +267,11 @@
       "has-link": "hasLink",
       "has-task-list": "hasTaskList",
       "label": "Filters"
+    },
+    "group": {
+      "expired": "Expired",
+      "planned": "Planned",
+      "unscheduled": "Unscheduled"
     },
     "links": "Links",
     "load-more": "Load more",

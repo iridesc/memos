@@ -34,11 +34,20 @@ const Today = () => {
     return todayFilter;
   }, [todayFilter, userFilter]);
 
-  // Sort by plan_start_time ascending so drag-and-drop reorder works correctly.
+  // Sort: expired memos first (plan_end_time < now), then by plan_start_time ascending.
+  // Within each group, plan_start_time asc keeps drag-and-drop reorder working correctly.
   // Filter guarantees plan_start_ts is non-null for all memos in this view.
   const orderBy = "plan_start_time asc";
   const listSort = useCallback((memos: Memo[]): Memo[] => {
-    return [...memos].sort((a, b) => timestampDate(a.planStartTime!).getTime() - timestampDate(b.planStartTime!).getTime());
+    const now = new Date().getTime();
+    return [...memos].sort((a, b) => {
+      const aExpired = timestampDate(a.planEndTime!).getTime() < now;
+      const bExpired = timestampDate(b.planEndTime!).getTime() < now;
+      // Expired memos first
+      if (aExpired !== bExpired) return aExpired ? -1 : 1;
+      // Within same group, sort by plan_start_time ascending
+      return timestampDate(a.planStartTime!).getTime() - timestampDate(b.planStartTime!).getTime();
+    });
   }, []);
 
   // Handle drag-and-drop reorder: compute new plan times based on neighbors.
