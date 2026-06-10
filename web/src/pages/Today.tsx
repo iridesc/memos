@@ -11,14 +11,14 @@ const Today = () => {
   const user = useCurrentUser();
   const updateMemo = useUpdateMemo();
 
-  // Build today filter: only memos whose plan_start_ts falls within today.
+  // Build today filter: show memos whose time range overlaps with today.
   const todayFilter = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const startTs = Math.floor(startOfDay.getTime() / 1000);
     const endTs = Math.floor(endOfDay.getTime() / 1000);
-    return `plan_start_ts >= ${startTs} && plan_start_ts < ${endTs}`;
+    return `plan_start_ts < ${endTs} && plan_end_ts >= ${startTs}`;
   }, []);
 
   const userFilter = useMemoFilters({
@@ -35,9 +35,9 @@ const Today = () => {
   }, [todayFilter, userFilter]);
 
   // Sort: expired memos first (plan_end_time < now), then by plan_start_time ascending.
-  // Within each group, plan_start_time asc keeps drag-and-drop reorder working correctly.
-  // Filter guarantees plan_start_ts is non-null for all memos in this view.
-  const orderBy = "plan_start_time asc";
+  // Within expired group, plan_end_time asc puts the most overdue first.
+  // Within active group, plan_start_time asc keeps drag-and-drop reorder working correctly.
+  const orderBy = "plan_end_time asc";
   const listSort = useCallback((memos: Memo[]): Memo[] => {
     const now = new Date().getTime();
     return [...memos].sort((a, b) => {
@@ -45,7 +45,11 @@ const Today = () => {
       const bExpired = timestampDate(b.planEndTime!).getTime() < now;
       // Expired memos first
       if (aExpired !== bExpired) return aExpired ? -1 : 1;
-      // Within same group, sort by plan_start_time ascending
+      // Within expired group: plan_end_time asc (most overdue first)
+      if (aExpired) {
+        return timestampDate(a.planEndTime!).getTime() - timestampDate(b.planEndTime!).getTime();
+      }
+      // Within active group: plan_start_time asc
       return timestampDate(a.planStartTime!).getTime() - timestampDate(b.planStartTime!).getTime();
     });
   }, []);
