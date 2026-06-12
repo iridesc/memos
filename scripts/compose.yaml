@@ -1,8 +1,9 @@
 services:
-  memos:
-    image: neosmemo/memos:stable
-    container_name: memos
-    volumes:
-      - ~/.memos/:/var/opt/memos
-    ports:
-      - 5230:5230
+    memodo:
+      image: irid/memodo:latest
+      container_name: memodo
+      ports:
+        - "5230:5230"
+      volumes:
+        - ./memodo-data:/var/opt/memos
+      restart: unless-stopped
