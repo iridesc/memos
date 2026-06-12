@@ -18,7 +18,6 @@ const Archived = () => {
   // Get sorting logic using unified hook (pinned first, archived state)
   const { listSort, orderBy } = useMemoSorting({
     pinnedFirst: true,
-    state: State.ARCHIVED,
   });
 
   return (

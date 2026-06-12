@@ -11,7 +11,6 @@ import { useView } from "@/contexts/ViewContext";
 import { useMemoFilters, useMemoSorting } from "@/hooks";
 import { useUser } from "@/hooks/useUserQueries";
 import { cn } from "@/lib/utils";
-import { State } from "@/types/proto/api/v1/common_pb";
 import { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 
@@ -93,7 +92,6 @@ const UserProfile = () => {
   const { timeBasis } = useView();
   const { listSort, orderBy } = useMemoSorting({
     pinnedFirst: true,
-    state: State.NORMAL,
   });
 
   const handleCopyProfileLink = () => {

@@ -84,6 +84,12 @@ type FindMemo struct {
 	OrderByPlanStart  bool
 	OrderByPlanEnd    bool
 	OrderByTimeAsc    bool
+	// Smart ordering: returns memos sorted by tier (expired → planned → unscheduled → completed),
+	// with within-tier ordering matching the smart sort behavior. Server computes tiers at query time.
+	OrderBySmart bool
+	// SmartNowTs is the Unix epoch timestamp used as "now" for smart tier comparisons.
+	// Only used when OrderBySmart is true.
+	SmartNowTs int64
 }
 
 type FindMemoPayload struct {

@@ -131,7 +131,19 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 	if find.OrderByPinned {
 		orderBy = append(orderBy, "`pinned` DESC")
 	}
-	if find.OrderByPlanStart {
+	if find.OrderBySmart {
+		nowTs := find.SmartNowTs
+		args = append(args, nowTs, nowTs, nowTs)
+		orderBy = append(orderBy, "CASE "+
+			"WHEN `memo`.`row_status` = 'COMPLETED' THEN 4 "+
+			"WHEN `memo`.`plan_end_ts` IS NULL THEN 3 "+
+			"WHEN `memo`.`plan_end_ts` < ? THEN 1 "+
+			"ELSE 2 "+
+			"END ASC, "+
+			"CASE WHEN `memo`.`plan_end_ts` IS NOT NULL AND `memo`.`plan_end_ts` < ? THEN `memo`.`plan_end_ts` ELSE 9223372036854775807 END ASC, "+
+			"CASE WHEN `memo`.`plan_start_ts` IS NOT NULL AND `memo`.`plan_end_ts` IS NOT NULL AND `memo`.`plan_end_ts` >= ? THEN `memo`.`plan_start_ts` ELSE 9223372036854775807 END ASC, "+
+			"CASE WHEN `memo`.`plan_end_ts` IS NULL OR `memo`.`row_status` = 'COMPLETED' THEN `memo`.`updated_ts` ELSE 0 END DESC")
+	} else if find.OrderByPlanStart {
 		orderBy = append(orderBy, "`plan_start_ts` "+order)
 	} else if find.OrderByPlanEnd {
 		orderBy = append(orderBy, "`plan_end_ts` "+order)

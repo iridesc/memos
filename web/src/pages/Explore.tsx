@@ -2,7 +2,6 @@ import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
 import { useMemoFilters, useMemoSorting } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { State } from "@/types/proto/api/v1/common_pb";
 import { Memo, Visibility } from "@/types/proto/api/v1/memo_service_pb";
 
 const Explore = () => {
@@ -24,7 +23,6 @@ const Explore = () => {
   // Get sorting logic using unified hook (no pinned sorting)
   const { listSort, orderBy } = useMemoSorting({
     pinnedFirst: false,
-    state: State.NORMAL,
   });
 
   return (

@@ -1086,8 +1086,12 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 				memoFind.OrderByTimeAsc = fieldDirection == "asc"
 			}
 			hasExplicitTimeField = true
+		case "smart":
+			memoFind.OrderBySmart = true
+			memoFind.SmartNowTs = time.Now().Unix()
+			hasExplicitTimeField = true
 		default:
-			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, name", fieldName)
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, name", fieldName)
 		}
 	}
 
