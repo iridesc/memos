@@ -3851,7 +3851,20 @@ components:
                     $ref: '#/components/schemas/UserSetting_GeneralSetting'
                 webhooksSetting:
                     $ref: '#/components/schemas/UserSetting_WebhooksSetting'
+                autoArchiveSetting:
+                    $ref: '#/components/schemas/UserSetting_AutoArchiveSetting'
             description: User settings message
+        UserSetting_AutoArchiveSetting:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                    description: Whether auto archive is enabled. Defaults to false.
+                archiveAfterDays:
+                    type: integer
+                    description: 'Number of days after completion to archive. Range: 1-365. Defaults to 15.'
+                    format: int32
+            description: Auto archive configuration.
         UserSetting_GeneralSetting:
             type: object
             properties:

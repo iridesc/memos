@@ -9,6 +9,7 @@ import {
   ListAllUserStatsRequestSchema,
   User,
   UserSetting,
+  UserSetting_AutoArchiveSetting,
   UserSetting_GeneralSetting,
   UserSetting_Key,
   UserSettingSchema,
@@ -232,6 +233,42 @@ export function useUpdateUserGeneralSetting(currentUserName?: string) {
         value: {
           case: "generalSetting",
           value: generalSetting as UserSetting_GeneralSetting,
+        },
+      });
+
+      const updatedSetting = await userServiceClient.updateUserSetting({
+        setting: userSetting,
+        updateMask: create(FieldMaskSchema, { paths: updateMask }),
+      });
+      return updatedSetting;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, "settings"] });
+    },
+  });
+}
+
+export function useUpdateAutoArchiveSetting(currentUserName?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      autoArchiveSetting,
+      updateMask,
+    }: {
+      autoArchiveSetting: Partial<UserSetting_AutoArchiveSetting>;
+      updateMask: string[];
+    }) => {
+      if (!currentUserName) {
+        throw new Error("No current user");
+      }
+
+      const settingName = buildUserSettingName(currentUserName, UserSetting_Key.AUTO_ARCHIVE);
+      const userSetting = create(UserSettingSchema, {
+        name: settingName,
+        value: {
+          case: "autoArchiveSetting",
+          value: autoArchiveSetting as UserSetting_AutoArchiveSetting,
         },
       });
 

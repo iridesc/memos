@@ -19,6 +19,8 @@ message UserSetting {
     REFRESH_TOKENS = 6;
     // Personal access tokens for the user.
     PERSONAL_ACCESS_TOKENS = 7;
+    // Auto archive setting for the user.
+    AUTO_ARCHIVE = 8;
   }
 
   int32 user_id = 1;
@@ -30,6 +32,7 @@ message UserSetting {
     WebhooksUserSetting webhooks = 7;
     RefreshTokensUserSetting refresh_tokens = 8;
     PersonalAccessTokensUserSetting personal_access_tokens = 9;
+    AutoArchiveUserSetting auto_archive = 10;
   }
 }
 
@@ -110,4 +113,11 @@ message WebhooksUserSetting {
     string url = 3;
   }
   repeated Webhook webhooks = 1;
+}
+
+message AutoArchiveUserSetting {
+  // Whether auto archive is enabled.
+  bool enabled = 1;
+  // Number of days after completion to archive.
+  int32 archive_after_days = 2;
 }

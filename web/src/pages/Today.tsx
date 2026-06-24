@@ -34,25 +34,10 @@ const Today = () => {
     return todayFilter;
   }, [todayFilter, userFilter]);
 
-  // Sort: expired memos first (plan_end_time < now), then by plan_start_time ascending.
-  // Within expired group, plan_end_time asc puts the most overdue first.
-  // Within active group, plan_start_time asc keeps drag-and-drop reorder working correctly.
-  const orderBy = "plan_end_time asc";
-  const listSort = useCallback((memos: Memo[]): Memo[] => {
-    const now = new Date().getTime();
-    return [...memos].sort((a, b) => {
-      const aExpired = timestampDate(a.planEndTime!).getTime() < now;
-      const bExpired = timestampDate(b.planEndTime!).getTime() < now;
-      // Expired memos first
-      if (aExpired !== bExpired) return aExpired ? -1 : 1;
-      // Within expired group: plan_end_time asc (most overdue first)
-      if (aExpired) {
-        return timestampDate(a.planEndTime!).getTime() - timestampDate(b.planEndTime!).getTime();
-      }
-      // Within active group: plan_start_time asc
-      return timestampDate(a.planStartTime!).getTime() - timestampDate(b.planStartTime!).getTime();
-    });
-  }, []);
+  // Server-side smart sort: expired → planned → unscheduled → completed.
+  // Within expired: most overdue first. Within planned: earliest start first.
+  // No client-side sort needed — server handles tiered ordering.
+  const orderBy = "smart";
 
   // Handle drag-and-drop reorder: compute new plan times based on neighbors.
   const handleReorder = useCallback(
@@ -97,7 +82,6 @@ const Today = () => {
     <div className="w-full min-h-full bg-background text-foreground">
       <PagedMemoList
         renderer={(memo: Memo) => <MemoView key={`${memo.name}-${memo.updateTime}`} memo={memo} showVisibility showPinned compact />}
-        listSort={listSort}
         orderBy={orderBy}
         filter={combinedFilter}
         showCreator
@@ -106,6 +90,7 @@ const Today = () => {
         editorCacheKey="today-memo-editor"
         draggable
         onReorder={handleReorder}
+        smartGroups
       />
     </div>
   );

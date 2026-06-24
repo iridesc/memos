@@ -437,6 +437,13 @@ func getDefaultUserGeneralSetting() *v1pb.UserSetting_GeneralSetting {
 	}
 }
 
+func getDefaultAutoArchiveSetting() *v1pb.UserSetting_AutoArchiveSetting {
+	return &v1pb.UserSetting_AutoArchiveSetting{
+		Enabled:          false,
+		ArchiveAfterDays: 15,
+	}
+}
+
 func (s *APIV1Service) resolveUserFromName(ctx context.Context, name string) (*store.User, error) {
 	user, err := ResolveUserByName(ctx, s.Store, name)
 	if err != nil {
@@ -624,6 +631,51 @@ func (s *APIV1Service) UpdateUserSetting(ctx context.Context, request *v1pb.Upda
 			Name: request.Setting.Name,
 			Value: &v1pb.UserSetting_GeneralSetting_{
 				GeneralSetting: updatedGeneral,
+			},
+		}
+	case storepb.UserSetting_AUTO_ARCHIVE:
+		existingUserSetting, _ := s.Store.GetUserSetting(ctx, &store.FindUserSetting{
+			UserID: &userID,
+			Key:    storeKey,
+		})
+
+		autoArchiveSetting := &storepb.AutoArchiveUserSetting{
+			Enabled:          false,
+			ArchiveAfterDays: 15,
+		}
+		if existingUserSetting != nil {
+			if existing := existingUserSetting.GetAutoArchive(); existing != nil {
+				autoArchiveSetting = existing
+			}
+		}
+
+		updatedAutoArchive := &v1pb.UserSetting_AutoArchiveSetting{
+			Enabled:          autoArchiveSetting.Enabled,
+			ArchiveAfterDays: autoArchiveSetting.ArchiveAfterDays,
+		}
+
+		incomingAutoArchive := request.Setting.GetAutoArchiveSetting()
+		if incomingAutoArchive == nil {
+			return nil, status.Errorf(codes.InvalidArgument, "auto archive setting is required")
+		}
+		for _, field := range request.UpdateMask.Paths {
+			switch field {
+			case "enabled":
+				updatedAutoArchive.Enabled = incomingAutoArchive.Enabled
+			case "archive_after_days":
+				if incomingAutoArchive.ArchiveAfterDays < 1 || incomingAutoArchive.ArchiveAfterDays > 365 {
+					return nil, status.Errorf(codes.InvalidArgument, "archive_after_days must be between 1 and 365")
+				}
+				updatedAutoArchive.ArchiveAfterDays = incomingAutoArchive.ArchiveAfterDays
+			default:
+				// Ignore unsupported fields.
+			}
+		}
+
+		updatedSetting = &v1pb.UserSetting{
+			Name: request.Setting.Name,
+			Value: &v1pb.UserSetting_AutoArchiveSetting_{
+				AutoArchiveSetting: updatedAutoArchive,
 			},
 		}
 	default:
@@ -1286,6 +1338,8 @@ func convertSettingKeyToStore(key string) (storepb.UserSetting_Key, error) {
 		return storepb.UserSetting_GENERAL, nil
 	case v1pb.UserSetting_Key_name[int32(v1pb.UserSetting_WEBHOOKS)]:
 		return storepb.UserSetting_WEBHOOKS, nil
+	case v1pb.UserSetting_Key_name[int32(v1pb.UserSetting_AUTO_ARCHIVE)]:
+		return storepb.UserSetting_AUTO_ARCHIVE, nil
 	default:
 		return storepb.UserSetting_KEY_UNSPECIFIED, errors.Errorf("unknown setting key: %s", key)
 	}
@@ -1300,6 +1354,8 @@ func convertSettingKeyFromStore(key storepb.UserSetting_Key) string {
 		return "SHORTCUTS" // Not defined in API proto
 	case storepb.UserSetting_WEBHOOKS:
 		return v1pb.UserSetting_Key_name[int32(v1pb.UserSetting_WEBHOOKS)]
+	case storepb.UserSetting_AUTO_ARCHIVE:
+		return v1pb.UserSetting_Key_name[int32(v1pb.UserSetting_AUTO_ARCHIVE)]
 	default:
 		return "unknown"
 	}
@@ -1325,6 +1381,10 @@ func convertUserSettingFromStore(storeSetting *storepb.UserSetting, user *store.
 					Webhooks: []*v1pb.UserWebhook{},
 				},
 			}
+		case storepb.UserSetting_AUTO_ARCHIVE:
+			setting.Value = &v1pb.UserSetting_AutoArchiveSetting_{
+				AutoArchiveSetting: getDefaultAutoArchiveSetting(),
+			}
 		default:
 			return nil
 		}
@@ -1349,6 +1409,19 @@ func convertUserSettingFromStore(storeSetting *storepb.UserSetting, user *store.
 		} else {
 			setting.Value = &v1pb.UserSetting_GeneralSetting_{
 				GeneralSetting: getDefaultUserGeneralSetting(),
+			}
+		}
+	case storepb.UserSetting_AUTO_ARCHIVE:
+		if autoArchive := storeSetting.GetAutoArchive(); autoArchive != nil {
+			setting.Value = &v1pb.UserSetting_AutoArchiveSetting_{
+				AutoArchiveSetting: &v1pb.UserSetting_AutoArchiveSetting{
+					Enabled:          autoArchive.Enabled,
+					ArchiveAfterDays: autoArchive.ArchiveAfterDays,
+				},
+			}
+		} else {
+			setting.Value = &v1pb.UserSetting_AutoArchiveSetting_{
+				AutoArchiveSetting: getDefaultAutoArchiveSetting(),
 			}
 		}
 	case storepb.UserSetting_WEBHOOKS:
@@ -1396,6 +1469,17 @@ func convertUserSettingToStore(apiSetting *v1pb.UserSetting, userID int32, key s
 			}
 		} else {
 			return nil, errors.Errorf("general setting is required")
+		}
+	case storepb.UserSetting_AUTO_ARCHIVE:
+		if autoArchive := apiSetting.GetAutoArchiveSetting(); autoArchive != nil {
+			storeSetting.Value = &storepb.UserSetting_AutoArchive{
+				AutoArchive: &storepb.AutoArchiveUserSetting{
+					Enabled:          autoArchive.Enabled,
+					ArchiveAfterDays: autoArchive.ArchiveAfterDays,
+				},
+			}
+		} else {
+			return nil, errors.Errorf("auto archive setting is required")
 		}
 	case storepb.UserSetting_WEBHOOKS:
 		if webhooks := apiSetting.GetWebhooksSetting(); webhooks != nil {

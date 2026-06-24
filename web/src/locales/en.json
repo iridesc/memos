@@ -597,7 +597,13 @@
       "memo-defaults-description": "Set the defaults used when composing new memos.",
       "memo-defaults-title": "Memo defaults",
       "theme-description": "Applies the selected theme immediately on this device.",
-      "theme": "Theme"
+      "theme": "Theme",
+      "auto-archive-title": "Auto Archive",
+      "auto-archive-description": "Automatically archive completed memos after a configurable number of days.",
+      "auto-archive-enabled": "Enable auto archive",
+      "auto-archive-enabled-description": "When enabled, completed memos will be automatically archived after the specified number of days.",
+      "auto-archive-days": "Archive after days",
+      "auto-archive-days-description": "Number of days after completion to automatically archive (1-365)."
     },
     "shortcut": {
       "delete-confirm": "Are you sure you want to delete shortcut `{{title}}`?",

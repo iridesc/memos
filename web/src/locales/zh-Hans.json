@@ -423,6 +423,12 @@
       "memo-defaults-title": "备忘录默认值",
       "theme-description": "立即在当前设备上应用所选主题。",
       "theme": "主题",
+      "auto-archive-title": "自动归档",
+      "auto-archive-description": "已完成 memo 在指定天数后自动转为归档状态。",
+      "auto-archive-enabled": "启用自动归档",
+      "auto-archive-enabled-description": "启用后，已完成 memo 将在指定天数后自动归档。",
+      "auto-archive-days": "归档天数",
+      "auto-archive-days-description": "完成后多少天自动归档（1-365）。",
       "label": "偏好设置"
     },
     "shortcut": {

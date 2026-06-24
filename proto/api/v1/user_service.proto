@@ -426,6 +426,7 @@ message UserSetting {
   oneof value {
     GeneralSetting general_setting = 2;
     WebhooksSetting webhooks_setting = 5;
+    AutoArchiveSetting auto_archive_setting = 6;
   }
 
   // Enumeration of user setting keys.
@@ -435,6 +436,8 @@ message UserSetting {
     GENERAL = 1;
     // WEBHOOKS is the key for user webhooks.
     WEBHOOKS = 4;
+    // AUTO_ARCHIVE is the key for auto archive settings.
+    AUTO_ARCHIVE = 5;
   }
 
   // General user settings configuration.
@@ -453,6 +456,14 @@ message UserSetting {
   message WebhooksSetting {
     // List of user webhooks.
     repeated UserWebhook webhooks = 1;
+  }
+
+  // Auto archive configuration.
+  message AutoArchiveSetting {
+    // Whether auto archive is enabled. Defaults to false.
+    bool enabled = 1 [(google.api.field_behavior) = OPTIONAL];
+    // Number of days after completion to archive. Range: 1-365. Defaults to 15.
+    int32 archive_after_days = 2 [(google.api.field_behavior) = OPTIONAL];
   }
 }
 

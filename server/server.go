@@ -23,6 +23,7 @@ import (
 	mcprouter "github.com/usememos/memodo/server/router/mcp"
 	"github.com/usememos/memodo/server/router/rss"
 	"github.com/usememos/memodo/server/runner/s3presign"
+	"github.com/usememos/memodo/server/runner/autoarchive"
 	"github.com/usememos/memodo/store"
 )
 
@@ -151,9 +152,10 @@ func (s *Server) startBackgroundRunners(ctx context.Context) {
 	// Create a separate context for each background runner
 	// This allows us to control cancellation for each runner independently
 	s3Context, s3Cancel := context.WithCancel(ctx)
+	autoArchiveContext, autoArchiveCancel := context.WithCancel(ctx)
 
 	// Store the cancel function so we can properly shut down runners
-	s.backgroundRunnerCancels = append(s.backgroundRunnerCancels, s3Cancel)
+	s.backgroundRunnerCancels = append(s.backgroundRunnerCancels, s3Cancel, autoArchiveCancel)
 
 	// Create and start S3 presign runner
 	s3presignRunner := s3presign.NewRunner(s.Store)
@@ -165,6 +167,27 @@ func (s *Server) startBackgroundRunners(ctx context.Context) {
 		defer s.backgroundRunnerWG.Done()
 		s3presignRunner.Run(s3Context)
 		slog.Info("s3presign runner stopped")
+	}()
+
+	// Create and start autoarchive runner.
+	autoarchiveRunner := autoarchive.NewRunner(s.Store, func(memoName string, visibility store.Visibility, creatorID int32) {
+		if s.sseHub != nil {
+			s.sseHub.Broadcast(&apiv1.SSEEvent{
+				Type:       apiv1.SSEEventMemoUpdated,
+				Name:       memoName,
+				Visibility: visibility,
+				CreatorID:  creatorID,
+			})
+		}
+	})
+	autoarchiveRunner.RunOnce(ctx)
+
+	// Start continuous autoarchive runner.
+	s.backgroundRunnerWG.Add(1)
+	go func() {
+		defer s.backgroundRunnerWG.Done()
+		autoarchiveRunner.Run(autoArchiveContext)
+		slog.Info("autoarchive runner stopped")
 	}()
 
 	slog.Info("background runners started")
