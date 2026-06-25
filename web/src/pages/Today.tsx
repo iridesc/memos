@@ -11,14 +11,15 @@ const Today = () => {
   const user = useCurrentUser();
   const updateMemo = useUpdateMemo();
 
-  // Build today filter: show memos whose time range overlaps with today.
+  // Build today filter: show memos whose time range overlaps with today,
+  // plus expired memos (plan_end_ts before today) that need re-planning.
   const todayFilter = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const startTs = Math.floor(startOfDay.getTime() / 1000);
     const endTs = Math.floor(endOfDay.getTime() / 1000);
-    return `plan_start_ts < ${endTs} && plan_end_ts >= ${startTs}`;
+    return `(plan_start_ts < ${endTs} && plan_end_ts >= ${startTs}) || plan_end_ts < ${startTs}`;
   }, []);
 
   const userFilter = useMemoFilters({
@@ -29,13 +30,14 @@ const Today = () => {
 
   const combinedFilter = useMemo(() => {
     if (userFilter) {
-      return `${todayFilter} && (${userFilter})`;
+      return `(${todayFilter}) && (${userFilter})`;
     }
     return todayFilter;
   }, [todayFilter, userFilter]);
 
-  // Server-side smart sort: expired → planned → unscheduled → completed.
+  // Server-side smart sort: expired → planned → completed.
   // Within expired: most overdue first. Within planned: earliest start first.
+  // Unscheduled memos (no plan times) are excluded from today view.
   // No client-side sort needed — server handles tiered ordering.
   const orderBy = "smart";
 
