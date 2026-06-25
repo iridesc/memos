@@ -13,7 +13,7 @@
 状态转换规则：
 - NORMAL → COMPLETED：用户勾选完成
 - COMPLETED → NORMAL：用户取消勾选
-- NORMAL/COMPLETED → ARCHIVED：用户归档
+- NORMAL/COMPLETED → ARCHIVED：用户归档，或自动归档定时任务触发归档
 - ARCHIVED → NORMAL：用户恢复（不回到 COMPLETED）
 
 #### Scenario: 标记 memo 为完成
@@ -28,7 +28,7 @@
 
 #### Scenario: 归档已完成 memo
 
-- **WHEN** 创建者将 COMPLETED 状态的 memo 归档（`state` 设为 `ARCHIVED`）
+- **WHEN** 创建者将 COMPLETED 状态的 memo 归档（`state` 设为 `ARCHIVED`），或自动归档定时任务对符合条件的 COMPLETED memo 执行归档
 - **THEN** 系统将该 memo 的 `row_status` 更新为 `ARCHIVED`
 
 #### Scenario: 恢复已归档 memo
