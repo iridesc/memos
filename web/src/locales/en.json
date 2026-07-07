@@ -599,7 +599,7 @@
       "theme-description": "Applies the selected theme immediately on this device.",
       "theme": "Theme",
       "auto-archive-title": "Auto Archive",
-      "auto-archive-description": "Automatically archive completed memos after a configurable number of days.",
+      "auto-archive-description": "Only COMPLETED memos are auto-archived after the specified number of days. NORMAL memos are unaffected and require manual archiving.",
       "auto-archive-enabled": "Enable auto archive",
       "auto-archive-enabled-description": "When enabled, completed memos will be automatically archived after the specified number of days.",
       "auto-archive-days": "Archive after days",

@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useInstance } from "@/contexts/InstanceContext";
 import { useTagCounts } from "@/hooks/useUserQueries";
 import { colorToHex } from "@/lib/color";
-import { isValidTagPattern } from "@/lib/tag";
+import { countMatchingTags, isValidTagPattern } from "@/lib/tag";
 import { cn } from "@/lib/utils";
 import {
   InstanceSetting_Key,
@@ -79,7 +79,7 @@ const TagsSection = () => {
     () =>
       Object.keys(localTags)
         .sort()
-        .map((name) => ({ name, count: tagCounts[name] ?? 0 })),
+        .map((name) => ({ name, count: countMatchingTags(name, tagCounts) })),
     [localTags, tagCounts],
   );
 

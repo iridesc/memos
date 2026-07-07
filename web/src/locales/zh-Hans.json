@@ -424,7 +424,7 @@
       "theme-description": "立即在当前设备上应用所选主题。",
       "theme": "主题",
       "auto-archive-title": "自动归档",
-      "auto-archive-description": "已完成 memo 在指定天数后自动转为归档状态。",
+      "auto-archive-description": "仅针对「已完成」状态的 memo，在指定天数后自动转为归档状态。NORMAL 状态的 memo 不会被自动归档，需手动操作。",
       "auto-archive-enabled": "启用自动归档",
       "auto-archive-enabled-description": "启用后，已完成 memo 将在指定天数后自动归档。",
       "auto-archive-days": "归档天数",

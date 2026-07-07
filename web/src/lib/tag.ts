@@ -3,7 +3,7 @@ import type { InstanceSetting_TagMetadata, InstanceSetting_TagsSetting } from "@
 // Cache compiled regexes to avoid re-compiling on every tag render.
 const compiledPatternCache = new Map<string, RegExp | null>();
 
-const getCompiledPattern = (pattern: string): RegExp | null => {
+export const getCompiledPattern = (pattern: string): RegExp | null => {
   if (compiledPatternCache.has(pattern)) {
     return compiledPatternCache.get(pattern)!;
   }
@@ -61,4 +61,23 @@ export const isValidTagPattern = (pattern: string): boolean => {
     return false;
   }
   return true;
+};
+
+/**
+ * Counts memos whose tags match the given regex pattern.
+ *
+ * For each tag in tagCounts, tests whether it matches the pattern using
+ * anchored regex (the same logic as findTagMetadata). Sums the counts
+ * of all matching tags.
+ */
+export const countMatchingTags = (pattern: string, tagCounts: Record<string, number>): number => {
+  const re = getCompiledPattern(pattern);
+  if (!re) return tagCounts[pattern] ?? 0;
+  let count = 0;
+  for (const [tagName, tagCount] of Object.entries(tagCounts)) {
+    if (re.test(tagName)) {
+      count += tagCount;
+    }
+  }
+  return count;
 };

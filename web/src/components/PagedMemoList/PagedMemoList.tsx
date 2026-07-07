@@ -148,10 +148,16 @@ const PagedMemoList = (props: Props) => {
     () => (shouldSplit ? sortedMemoList.filter((m) => m.state !== State.COMPLETED) : sortedMemoList),
     [sortedMemoList, shouldSplit],
   );
-  const completedMemos = useMemo(
-    () => (shouldSplit ? sortedMemoList.filter((m) => m.state === State.COMPLETED) : []),
-    [sortedMemoList, shouldSplit],
-  );
+  const completedMemos = useMemo(() => {
+    if (!shouldSplit) return [];
+    return sortedMemoList
+      .filter((m) => m.state === State.COMPLETED)
+      .sort((a, b) => {
+        const aTime = a.updateTime ? timestampDate(a.updateTime).getTime() : 0;
+        const bTime = b.updateTime ? timestampDate(b.updateTime).getTime() : 0;
+        return bTime - aTime; // Most recently completed first
+      });
+  }, [sortedMemoList, shouldSplit]);
 
   // Smart group separators: insert labels between tiers when in smart mode.
   const getSmartTier = useCallback((m: Memo): number => {

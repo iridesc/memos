@@ -85,6 +85,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
         <PlanTimeDisplay
           planStartTime={planStartTime}
           planEndTime={planEndTime}
+          updateTime={updateTime}
           isCompleted={isCompleted}
           timeTooltip={timeTooltip}
           onGotoDetail={handleGotoMemoDetailPage}
@@ -166,16 +167,18 @@ const TimeTooltip = ({ children, content }: { children: React.ReactElement; cont
 const PlanTimeDisplay: React.FC<{
   planStartTime?: Date;
   planEndTime?: Date;
+  updateTime?: Date;
   isCompleted?: boolean;
   timeTooltip: TimeTooltipContent;
   onGotoDetail: () => void;
-}> = ({ planStartTime, planEndTime, isCompleted, timeTooltip, onGotoDetail }) => {
+}> = ({ planStartTime, planEndTime, updateTime, isCompleted, timeTooltip, onGotoDetail }) => {
   const t = useTranslate();
 
   if (!planStartTime || !planEndTime) return null;
 
-  // Completed memos: show green "已完成" instead of relative time.
+  // Completed memos: show green "已完成" with completion date.
   if (isCompleted) {
+    const dateStr = updateTime ? updateTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
     return (
       <TimeTooltip content={timeTooltip}>
         <button
@@ -184,6 +187,7 @@ const PlanTimeDisplay: React.FC<{
           onClick={onGotoDetail}
         >
           {t("common.completed")}
+          {dateStr && <span className="ml-1 font-normal text-muted-foreground">{dateStr}</span>}
         </button>
       </TimeTooltip>
     );
