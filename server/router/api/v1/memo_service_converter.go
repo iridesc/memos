@@ -42,6 +42,7 @@ func (s *APIV1Service) convertMemoFromStoreWithCreators(ctx context.Context, mem
 		UpdateTime:    timestamppb.New(time.Unix(memo.UpdatedTs, 0)),
 		PlanStartTime: convertTimestampFromStore(memo.PlanStartTs),
 		PlanEndTime:   convertTimestampFromStore(memo.PlanEndTs),
+		TodayOrder:   memo.TodayOrder,
 		Content:       memo.Content,
 		Visibility:    convertVisibilityFromStore(memo.Visibility),
 		Pinned:        memo.Pinned,

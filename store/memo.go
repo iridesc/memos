@@ -50,6 +50,7 @@ type Memo struct {
 	Pinned       bool
 	PlanStartTs  *int64
 	PlanEndTs    *int64
+		TodayOrder   *string
 	Payload      *storepb.MemoPayload
 
 	// Composed fields
@@ -87,6 +88,7 @@ type FindMemo struct {
 	// Smart ordering: returns memos sorted by tier (expired → planned → unscheduled → completed),
 	// with within-tier ordering matching the smart sort behavior. Server computes tiers at query time.
 	OrderBySmart bool
+		OrderByTodayOrder bool
 	// SmartNowTs is the Unix epoch timestamp used as "now" for smart tier comparisons.
 	// Only used when OrderBySmart is true.
 	SmartNowTs int64
@@ -112,6 +114,7 @@ type UpdateMemo struct {
 	Pinned      *bool
 	PlanStartTs *int64
 	PlanEndTs   *int64
+		TodayOrder  *string
 	Payload     *storepb.MemoPayload
 }
 

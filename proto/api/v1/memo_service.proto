@@ -261,9 +261,13 @@ message Memo {
 
   // Optional. The planned end time of the memo.
   // When set, indicates the deadline or planned completion time.
-  google.protobuf.Timestamp plan_end_time = 20 [(google.api.field_behavior) = OPTIONAL];
+ google.protobuf.Timestamp plan_end_time = 20 [(google.api.field_behavior) = OPTIONAL];
+  // The display order in the Today view.
+  // Uses fractional indexing (base-62) for insertion between arbitrary items.
+  // Empty means the memo has not been explicitly ordered in Today view.
+  string today_order = 21 [(google.api.field_behavior) = OPTIONAL];
 
-  // Computed properties of a memo.
+ // Computed properties of a memo.
   message Property {
     bool has_link = 1;
     bool has_task_list = 2;

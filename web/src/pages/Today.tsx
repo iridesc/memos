@@ -1,10 +1,10 @@
-import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useCallback, useMemo } from "react";
 import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
 import { useMemoFilters } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useUpdateMemo } from "@/hooks/useMemoQueries";
+import { computeReorderKey } from "@/lib/today-order";
 import { Memo } from "@/types/proto/api/v1/memo_service_pb";
 
 const Today = () => {
@@ -39,42 +39,25 @@ const Today = () => {
   // Within expired: most overdue first. Within planned: earliest start first.
   // Unscheduled memos (no plan times) are excluded from today view.
   // No client-side sort needed — server handles tiered ordering.
-  const orderBy = "smart";
+  const orderBy = "today_order";
 
   // Handle drag-and-drop reorder: compute new plan times based on neighbors.
   const handleReorder = useCallback(
-    (_fromIndex: number, toIndex: number, memo: Memo, reordered: Memo[]) => {
-      const prev = toIndex > 0 ? reordered[toIndex - 1] : undefined;
-      const next = toIndex < reordered.length - 1 ? reordered[toIndex + 1] : undefined;
+    (_fromIndex: number, _toIndex: number, memo: Memo, reordered: Memo[]) => {
+      const newIndex = reordered.findIndex((m) => m.name === memo.name);
+      if (newIndex === -1) return;
 
-      const prevStart = prev?.planStartTime ? timestampDate(prev.planStartTime).getTime() : 0;
-      const nextStart = next?.planStartTime ? timestampDate(next.planStartTime).getTime() : 0;
+      const prev = newIndex > 0 ? reordered[newIndex - 1] : null;
+      const next = newIndex < reordered.length - 1 ? reordered[newIndex + 1] : null;
 
-      const oldStart = memo.planStartTime ? timestampDate(memo.planStartTime).getTime() : Date.now();
-      const oldEnd = memo.planEndTime ? timestampDate(memo.planEndTime).getTime() : Date.now() + 60 * 60 * 1000;
-      const oldDuration = oldEnd - oldStart;
+      const prevOrder = (prev as { todayOrder?: string })?.todayOrder ?? null;
+      const nextOrder = (next as { todayOrder?: string })?.todayOrder ?? null;
 
-      let newStartMs: number;
-      if (prevStart && nextStart) {
-        newStartMs = Math.round((prevStart + nextStart) / 2);
-      } else if (!prevStart && nextStart) {
-        newStartMs = nextStart - 5 * 60 * 1000;
-      } else if (prevStart && !nextStart) {
-        newStartMs = prevStart + 30 * 60 * 1000;
-      } else {
-        newStartMs = Date.now() + 5 * 60 * 1000;
-      }
-
-      const newStartSec = Math.floor(newStartMs / 1000);
-      const newEndSec = Math.floor((newStartMs + oldDuration) / 1000);
-
+      const { key } = computeReorderKey(prevOrder, nextOrder);
+      const update = { name: memo.name, todayOrder: key };
       updateMemo.mutateAsync({
-        update: {
-          name: memo.name,
-          planStartTime: { seconds: BigInt(newStartSec), nanos: 0 },
-          planEndTime: { seconds: BigInt(newEndSec), nanos: 0 },
-        } as Partial<Memo>,
-        updateMask: ["plan_start_time", "plan_end_time"],
+        update: update as Partial<Memo>,
+        updateMask: ["today_order"],
       });
     },
     [updateMemo],
@@ -92,7 +75,7 @@ const Today = () => {
         editorCacheKey="today-memo-editor"
         draggable
         onReorder={handleReorder}
-        smartGroups
+        smartGroups={false}
       />
     </div>
   );

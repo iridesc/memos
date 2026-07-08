@@ -36,6 +36,7 @@ func (d *DB) CreateMemo(ctx context.Context, create *store.Memo) (*store.Memo, e
 		fields = append(fields, "`updated_ts`")
 		placeholder = append(placeholder, "FROM_UNIXTIME(?)")
 		args = append(args, create.UpdatedTs)
+	}
 	if create.PlanStartTs != nil {
 		fields = append(fields, "`plan_start_ts`")
 		placeholder = append(placeholder, "?")
@@ -46,6 +47,10 @@ func (d *DB) CreateMemo(ctx context.Context, create *store.Memo) (*store.Memo, e
 		placeholder = append(placeholder, "?")
 		args = append(args, *create.PlanEndTs)
 	}
+	if create.TodayOrder != nil {
+		fields = append(fields, "`today_order`")
+		placeholder = append(placeholder, "?")
+		args = append(args, *create.TodayOrder)
 	}
 
 	stmt := "INSERT INTO `memo` (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(placeholder, ", ") + ")"
@@ -151,6 +156,8 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 			"CASE WHEN `memo`.`plan_end_ts` IS NOT NULL AND `memo`.`plan_end_ts` < ? THEN `memo`.`plan_end_ts` ELSE 9223372036854775807 END ASC, "+
 			"CASE WHEN `memo`.`plan_start_ts` IS NOT NULL AND `memo`.`plan_end_ts` IS NOT NULL AND `memo`.`plan_end_ts` >= ? THEN `memo`.`plan_start_ts` ELSE 9223372036854775807 END ASC, "+
 			"CASE WHEN `memo`.`plan_end_ts` IS NULL OR `memo`.`row_status` = 'COMPLETED' THEN `memo`.`updated_ts` ELSE 0 END DESC")
+	} else if find.OrderByTodayOrder {
+		orderBy = append(orderBy, "today_order ASC")
 	} else if find.OrderByPlanStart {
 			orderBy = append(orderBy, "`plan_start_ts` "+order)
 		} else if find.OrderByPlanEnd {
@@ -170,6 +177,7 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 		"UNIX_TIMESTAMP(`memo`.`updated_ts`) AS `updated_ts`",
 			"`memo`.`plan_start_ts` AS `plan_start_ts`",
 			"`memo`.`plan_end_ts` AS `plan_end_ts`",
+		"`memo`.`today_order` AS `today_order`",
 		"`memo`.`row_status` AS `row_status`",
 		"`memo`.`visibility` AS `visibility`",
 		"`memo`.`pinned` AS `pinned`",
@@ -212,6 +220,7 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 			&memo.UpdatedTs,
 				&memo.PlanStartTs,
 				&memo.PlanEndTs,
+			&memo.TodayOrder,
 			&memo.RowStatus,
 			&memo.Visibility,
 			&memo.Pinned,
@@ -296,6 +305,9 @@ func (d *DB) UpdateMemo(ctx context.Context, update *store.UpdateMemo) error {
 			return err
 		}
 		set, args = append(set, "`payload` = ?"), append(args, string(payloadBytes))
+	}
+	if v := update.TodayOrder; v != nil {
+		set, args = append(set, "`today_order` = ?"), append(args, *v)
 	}
 	if len(set) == 0 {
 		return nil

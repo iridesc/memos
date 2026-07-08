@@ -41,6 +41,7 @@ CREATE TABLE memo (
   pinned BOOLEAN NOT NULL DEFAULT FALSE,
   plan_start_ts BIGINT DEFAULT NULL,
   plan_end_ts BIGINT DEFAULT NULL,
+  today_order TEXT DEFAULT NULL,
   payload JSONB NOT NULL DEFAULT '{}'
 );
 

@@ -558,7 +558,9 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 				ts = &clear
 			}
 			update.PlanEndTs = ts
-		} else if path == "attachments" {
+	} else if path == "today_order" {
+		update.TodayOrder = request.Memo.TodayOrder
+	} else if path == "attachments" {
 			if err := s.setMemoAttachmentsInternal(ctx, user, memo, request.Memo.Attachments); err != nil {
 				return nil, errors.Wrap(err, "failed to set memo attachments")
 			}
@@ -1090,8 +1092,11 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 			memoFind.OrderBySmart = true
 			memoFind.SmartNowTs = time.Now().Unix()
 			hasExplicitTimeField = true
+		case "today_order":
+			memoFind.OrderByTodayOrder = true
+			hasExplicitTimeField = true
 		default:
-			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, name", fieldName)
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, today_order, name", fieldName)
 		}
 	}
 

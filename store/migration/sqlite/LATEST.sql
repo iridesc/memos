@@ -42,6 +42,7 @@ CREATE TABLE memo (
   pinned INTEGER NOT NULL CHECK (pinned IN (0, 1)) DEFAULT 0,
   plan_start_ts BIGINT DEFAULT NULL,
   plan_end_ts BIGINT DEFAULT NULL,
+  today_order TEXT DEFAULT NULL,
   payload TEXT NOT NULL DEFAULT '{}'
 );
 

@@ -257,6 +257,10 @@ type Memo struct {
 	// Optional. The planned end time of the memo.
 	// When set, indicates the deadline or planned completion time.
 	PlanEndTime   *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=plan_end_time,json=planEndTime,proto3" json:"plan_end_time,omitempty"`
+	// The display order in the Today view.
+	// Uses fractional indexing (base-62) for insertion between arbitrary items.
+	// Empty means the memo has not been explicitly ordered in Today view.
+	TodayOrder   *string 
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -415,6 +419,13 @@ func (x *Memo) GetPlanEndTime() *timestamppb.Timestamp {
 		return x.PlanEndTime
 	}
 	return nil
+}
+
+func (x *Memo) GetTodayOrder() string {
+	if x != nil && x.TodayOrder != nil {
+		return *x.TodayOrder
+	}
+	return ""
 }
 
 type Location struct {
