@@ -238,11 +238,6 @@ export function useUpdateMemo() {
       // Update cache with server response
       queryClient.setQueryData(memoKeys.detail(updatedMemo.name), updatedMemo);
       patchMemoInCollectionQueries(queryClient, updatedMemo);
-      // Invalidate lists to refresh
-      queryClient.invalidateQueries({ queryKey: memoKeys.lists() });
-      if (updatedMemo.parent) {
-        queryClient.invalidateQueries({ queryKey: memoKeys.comments(updatedMemo.parent) });
-      }
       // Invalidate user stats
       queryClient.invalidateQueries({ queryKey: userKeys.stats() });
     },
