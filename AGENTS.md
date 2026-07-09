@@ -104,3 +104,13 @@ web/src/
 - **proto-linter.yml:** buf lint + format check
 - **release.yml:** On version tags, builds frontend once, packages binaries for Linux/macOS/Windows, and publishes release container images/tags
 - **Docker:** Multi-stage (`scripts/Dockerfile`), Alpine 3.21, non-root user, port 5230, multi-arch (amd64/arm64/arm/v7)
+
+## Container Tooling
+
+When building or deploying containers for this project, prefer the following order:
+1. `podman` / `podman-compose` (primary)
+2. `docker` / `docker compose` (fallback if podman is unavailable)
+
+Build command: `podman build -t irid/memodo:latest -f scripts/Dockerfile .`
+Push command: `podman push irid/memodo:latest`
+Deploy command: `podman-compose pull && podman-compose down && podman-compose up -d`
