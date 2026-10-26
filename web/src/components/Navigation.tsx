@@ -1,13 +1,4 @@
-import {
-  BellIcon,
-  CalendarDaysIcon,
-  CalendarRangeIcon,
-  EarthIcon,
-  InfoIcon,
-  LibraryIcon,
-  PaperclipIcon,
-  UserCircleIcon,
-} from "lucide-react";
+import { BellIcon, CalendarRangeIcon, EarthIcon, InfoIcon, LibraryIcon, PaperclipIcon, UserCircleIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useCurrentUser from "@/hooks/useCurrentUser";
@@ -37,12 +28,6 @@ const Navigation = (props: Props) => {
   const currentUser = useCurrentUser();
   const { data: notifications = [] } = useNotifications();
 
-  const todayNavLink: NavLinkItem = {
-    id: "header-today",
-    path: Routes.TODAY,
-    title: t("common.today"),
-    icon: <CalendarDaysIcon className="w-6 h-auto shrink-0" />,
-  };
   const calendarNavLink: NavLinkItem = {
     id: "header-calendar",
     path: Routes.CALENDAR,
@@ -97,8 +82,8 @@ const Navigation = (props: Props) => {
   };
 
   const primaryNavLinks: NavLinkItem[] = currentUser
-    ? [todayNavLink, calendarNavLink, homeNavLink, exploreNavLink, attachmentsNavLink, inboxNavLink]
-    : [todayNavLink, exploreNavLink, aboutNavLink, signInNavLink];
+    ? [calendarNavLink, homeNavLink, exploreNavLink, attachmentsNavLink, inboxNavLink]
+    : [exploreNavLink, aboutNavLink, signInNavLink];
   const inboxAriaLabel = unreadCount > 0 ? `${t("common.inbox")}, ${unreadCount} unread` : t("common.inbox");
 
   return (

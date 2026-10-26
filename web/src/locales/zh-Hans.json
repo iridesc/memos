@@ -4,6 +4,7 @@
     "title": "日历",
     "description": "看看每天的安排，轻松掌握忙闲。",
     "view": "日历视图",
+    "today": "今日",
     "month": "月视图",
     "week": "周视图",
     "previous": "上一时段",

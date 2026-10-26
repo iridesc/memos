@@ -4,6 +4,7 @@
     "title": "Calendar",
     "description": "Your planned days, at a glance.",
     "view": "Calendar view",
+    "today": "Today",
     "month": "Month",
     "week": "Week",
     "previous": "Previous period",
