@@ -34,6 +34,8 @@ interface Props {
   showMemoEditor?: boolean;
   editorCacheKey?: string;
   onReorder?: (fromIndex: number, toIndex: number, memo: Memo, reordered: Memo[]) => Promise<void>;
+  /** Limit the completed section without affecting the active memo list. */
+  completedMemoFilter?: (memo: Memo) => boolean;
   /** When true, insert visual group separators between smart-sort tiers (expired / planned / unscheduled). */
   smartGroups?: boolean;
 }
@@ -150,13 +152,13 @@ const PagedMemoList = (props: Props) => {
   const completedMemos = useMemo(() => {
     if (!shouldSplit) return [];
     return sortedMemoList
-      .filter((m) => m.state === State.COMPLETED)
+      .filter((m) => m.state === State.COMPLETED && (props.completedMemoFilter?.(m) ?? true))
       .sort((a, b) => {
         const aTime = a.updateTime ? timestampDate(a.updateTime).getTime() : 0;
         const bTime = b.updateTime ? timestampDate(b.updateTime).getTime() : 0;
         return bTime - aTime; // Most recently completed first
       });
-  }, [sortedMemoList, shouldSplit]);
+  }, [sortedMemoList, shouldSplit, props.completedMemoFilter]);
 
   // Smart group separators: insert labels between tiers when in smart mode.
   const getSmartTier = useCallback((m: Memo): number => {

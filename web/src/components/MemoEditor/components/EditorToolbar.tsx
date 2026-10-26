@@ -2,6 +2,7 @@ import { CalendarIcon } from "lucide-react";
 import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { createQuickPlanTimeRange, PLAN_TIME_PRESETS } from "@/lib/plan-time";
 import { useTranslate } from "@/utils/i18n";
 import { validationService } from "../services";
 import { useEditorContext } from "../state";
@@ -16,29 +17,23 @@ const PlanTimeEditor: FC<{
 }> = ({ planStartTime, planEndTime, onChange }) => {
   const t = useTranslate();
   const [open, setOpen] = useState(false);
+  const [isCustomMode, setIsCustomMode] = useState(false);
   const hasPlanTime = !!(planStartTime && planEndTime);
   const hasAnyPlanTime = !!(planStartTime || planEndTime);
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen && !hasAnyPlanTime) {
-      const now = new Date();
-      // Round up to next 5-min mark after adding 5 minutes
-      const nextMin = Math.ceil((now.getMinutes() + 5) / 5) * 5;
-      let startH = now.getHours();
-      let startM = nextMin;
-      if (startM >= 60) {
-        startH += 1;
-        startM -= 60;
-      }
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, startM, 0, 0);
-
-      // End: today 23:55 if gap >= 1h, otherwise tomorrow 23:55
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 55, 0, 0);
-      const end = todayEnd.getTime() - start.getTime() >= 60 * 60 * 1000 ? todayEnd : new Date(todayEnd.getTime() + 24 * 60 * 60 * 1000);
-
-      onChange({ planStartTime: start, planEndTime: end });
-    }
+    if (!newOpen) setIsCustomMode(false);
     setOpen(newOpen);
+  };
+
+  const handlePreset = (delayMinutes: number) => {
+    onChange(createQuickPlanTimeRange(new Date(), delayMinutes));
+    setOpen(false);
+  };
+
+  const handleCustom = () => {
+    if (!hasAnyPlanTime) onChange(createQuickPlanTimeRange(new Date(), 5));
+    setIsCustomMode(true);
   };
 
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -152,90 +147,120 @@ const PlanTimeEditor: FC<{
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[336px] max-w-[calc(100vw-2rem)]">
         <div className="flex flex-col gap-3 p-1">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
-            <div className="flex flex-row gap-1.5 items-end">
-              <input
-                type="date"
-                min={minDate}
-                className="min-w-0 w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                value={startDate}
-                onChange={(e) => handleStartDateChange(e.target.value)}
-              />
-              <select
-                className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
-                value={getHour(planStartTime)}
-                onChange={(e) => handleStartTimeChange("h", Number(e.target.value))}
-              >
-                {filteredHours(startMinHour).map((h) => (
-                  <option key={h} value={h}>
-                    {pad(h)}
-                  </option>
+          {isCustomMode ? (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
+                <div className="flex flex-row gap-1.5 items-end">
+                  <input
+                    type="date"
+                    min={minDate}
+                    className="min-w-0 w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                    value={startDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                  />
+                  <select
+                    className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
+                    value={getHour(planStartTime)}
+                    onChange={(e) => handleStartTimeChange("h", Number(e.target.value))}
+                  >
+                    {filteredHours(startMinHour).map((h) => (
+                      <option key={h} value={h}>
+                        {pad(h)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-muted-foreground -ml-0.5">:</span>
+                  <select
+                    className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
+                    value={getMinute(planStartTime)}
+                    onChange={(e) => handleStartTimeChange("m", Number(e.target.value))}
+                  >
+                    {filteredMinutes(planStartTime?.getHours() === startMinHour ? startMinMinute : 0).map((m) => (
+                      <option key={m} value={m}>
+                        {pad(m)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">{t("common.plan-end")}</label>
+                <div className="flex flex-row gap-1.5 items-end">
+                  <input
+                    type="date"
+                    min={startDate || minDate}
+                    className="min-w-0 w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                    value={endDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    disabled={!planStartTime}
+                  />
+                  <select
+                    className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
+                    value={getHour(planEndTime)}
+                    onChange={(e) => handleEndTimeChange("h", Number(e.target.value))}
+                    disabled={!planStartTime}
+                  >
+                    {filteredHours(endMinHour).map((h) => (
+                      <option key={h} value={h}>
+                        {pad(h)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-muted-foreground -ml-0.5">:</span>
+                  <select
+                    className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
+                    value={getMinute(planEndTime)}
+                    onChange={(e) => handleEndTimeChange("m", Number(e.target.value))}
+                    disabled={!planStartTime}
+                  >
+                    {filteredMinutes(isSameDay && planEndTime?.getHours() === endMinHour ? endMinMinute : 0).map((m) => (
+                      <option key={m} value={m}>
+                        {pad(m)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {hasAnyPlanTime && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onChange({ planStartTime: undefined, planEndTime: undefined });
+                    setOpen(false);
+                  }}
+                >
+                  {t("common.clear")}
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium">{t("editor.plan-time.title")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PLAN_TIME_PRESETS.map((delayMinutes) => (
+                  <Button key={delayMinutes} variant="outline" size="sm" onClick={() => handlePreset(delayMinutes)}>
+                    {t(`editor.plan-time.after-${delayMinutes}m`)}
+                  </Button>
                 ))}
-              </select>
-              <span className="text-xs text-muted-foreground -ml-0.5">:</span>
-              <select
-                className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
-                value={getMinute(planStartTime)}
-                onChange={(e) => handleStartTimeChange("m", Number(e.target.value))}
-              >
-                {filteredMinutes(planStartTime?.getHours() === startMinHour ? startMinMinute : 0).map((m) => (
-                  <option key={m} value={m}>
-                    {pad(m)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground">{t("common.plan-end")}</label>
-            <div className="flex flex-row gap-1.5 items-end">
-              <input
-                type="date"
-                min={startDate || minDate}
-                className="min-w-0 w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                value={endDate}
-                onChange={(e) => handleEndDateChange(e.target.value)}
-                disabled={!planStartTime}
-              />
-              <select
-                className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
-                value={getHour(planEndTime)}
-                onChange={(e) => handleEndTimeChange("h", Number(e.target.value))}
-                disabled={!planStartTime}
-              >
-                {filteredHours(endMinHour).map((h) => (
-                  <option key={h} value={h}>
-                    {pad(h)}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-muted-foreground -ml-0.5">:</span>
-              <select
-                className="w-[52px] rounded-md border border-input bg-background px-1 py-1.5 text-xs"
-                value={getMinute(planEndTime)}
-                onChange={(e) => handleEndTimeChange("m", Number(e.target.value))}
-                disabled={!planStartTime}
-              >
-                {filteredMinutes(isSameDay && planEndTime?.getHours() === endMinHour ? endMinMinute : 0).map((m) => (
-                  <option key={m} value={m}>
-                    {pad(m)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {hasAnyPlanTime && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onChange({ planStartTime: undefined, planEndTime: undefined });
-                setOpen(false);
-              }}
-            >
-              {t("common.clear")}
-            </Button>
+                <Button variant="outline" size="sm" onClick={handleCustom}>
+                  {t("editor.plan-time.custom")}
+                </Button>
+              </div>
+              {hasAnyPlanTime && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onChange({ planStartTime: undefined, planEndTime: undefined });
+                    setOpen(false);
+                  }}
+                >
+                  {t("common.clear")}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </PopoverContent>

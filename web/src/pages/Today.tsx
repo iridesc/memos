@@ -4,6 +4,7 @@ import PagedMemoList from "@/components/PagedMemoList";
 import { useMemoFilters } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useUpdateMemo } from "@/hooks/useMemoQueries";
+import { isMemoCompletedOnDay } from "@/lib/today-completion";
 import { planMemoMove } from "@/lib/today-order";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 
@@ -34,6 +35,8 @@ const Today = () => {
     }
     return todayFilter;
   }, [todayFilter, userFilter]);
+
+  const completedToday = useCallback((memo: Memo) => isMemoCompletedOnDay(memo, new Date()), []);
 
   // Keep the explicit Today sequence on the server.
   const orderBy = "today_order";
@@ -69,6 +72,7 @@ const Today = () => {
         showMemoEditor
         editorCacheKey="today-memo-editor"
         onReorder={handleReorder}
+        completedMemoFilter={completedToday}
         smartGroups={false}
       />
     </div>

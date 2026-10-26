@@ -10,20 +10,15 @@ const memo = (name: string, start: string, end: string) =>
 
 describe("schedule calendar dates", () => {
   it("includes leap day and pads complete weeks with the configured first weekday", () => {
-    const days = calendarDays(date("2024-02-20"), "month", 1);
+    const days = calendarDays(date("2024-02-20"), 1);
     expect(dateKey(days[0])).toBe("2024-01-29");
     expect(dateKey(days.at(-1)!)).toBe("2024-03-03");
     expect(days.some((day) => dateKey(day) === "2024-02-29")).toBe(true);
     expect(days.length % 7).toBe(0);
   });
-  it("handles weeks crossing the year boundary", () => {
-    const days = calendarDays(date("2026-01-01"), "week", 1);
-    expect(days.map(dateKey)).toEqual(["2025-12-29", "2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"]);
-  });
   it("moves months without skipping February from the 31st", () => {
-    expect(dateKey(moveCalendar(date("2026-01-31"), "month", 1))).toBe("2026-02-01");
-    expect(dateKey(moveCalendar(date("2026-01-01"), "month", -1))).toBe("2025-12-01");
-    expect(dateKey(moveCalendar(date("2026-01-01"), "week", 1))).toBe("2026-01-08");
+    expect(dateKey(moveCalendar(date("2026-01-31"), 1))).toBe("2026-02-01");
+    expect(dateKey(moveCalendar(date("2026-01-01"), -1))).toBe("2025-12-01");
   });
   it("steps through local dates across DST changes", () => {
     expect(dateKey(addDays(date("2026-03-08"), 1))).toBe("2026-03-09");

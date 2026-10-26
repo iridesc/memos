@@ -4,9 +4,8 @@
     "title": "Calendar",
     "description": "Your planned days, at a glance.",
     "view": "Calendar view",
-    "today": "Today",
+    "today": "Day",
     "month": "Month",
-    "week": "Week",
     "previous": "Previous period",
     "next": "Next period",
     "loading": "Loading scheduled items…",
@@ -217,6 +216,15 @@
     "save": "Save",
     "saving": "Saving...",
     "slash-commands": "Type `/` for commands",
+    "plan-time": {
+      "title": "Plan time",
+      "after-5m": "In 5 minutes",
+      "after-15m": "In 15 minutes",
+      "after-30m": "In 30 minutes",
+      "after-60m": "In 1 hour",
+      "after-180m": "In 3 hours",
+      "custom": "Custom"
+    },
     "audio-recorder": {
       "attachment-label": "Audio recording",
       "attachment-label-with-time": "Audio recording {{time}}",

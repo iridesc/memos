@@ -8,22 +8,14 @@ import { useInstance } from "@/contexts/InstanceContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useScheduleCalendar } from "@/hooks/useScheduleCalendar";
 import i18n from "@/i18n";
-import {
-  addDays,
-  type CalendarView,
-  calendarDays,
-  calendarHeat,
-  dateKey,
-  groupScheduledMemos,
-  moveCalendar,
-} from "@/lib/schedule-calendar";
+import { addDays, calendarDays, calendarHeat, dateKey, groupScheduledMemos, moveCalendar } from "@/lib/schedule-calendar";
 import { cn } from "@/lib/utils";
 import Today from "@/pages/Today";
 import { State } from "@/types/proto/api/v1/common_pb";
 import { useTranslate } from "@/utils/i18n";
 
 const HEAT_CLASSES = ["bg-muted/40", "bg-primary/10", "bg-primary/25", "bg-primary/45", "bg-primary/75 text-primary-foreground"];
-type ScheduleView = "today" | CalendarView;
+type ScheduleView = "today" | "month";
 
 const Calendar = () => {
   const t = useTranslate();
@@ -31,17 +23,13 @@ const Calendar = () => {
   const { generalSetting } = useInstance();
   const [params, setParams] = useSearchParams();
   const viewParam = params.get("view");
-  const view: ScheduleView = viewParam === "month" || viewParam === "week" ? viewParam : "today";
-  const calendarView: CalendarView = view === "today" ? "month" : view;
+  const view: ScheduleView = viewParam === "month" ? "month" : "today";
   const dateParam = params.get("date") || "";
   const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? new Date(`${dateParam}T00:00:00`) : new Date();
   const anchor = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   const weekStart = ((generalSetting.weekStartDayOffset % 7) + 7) % 7;
   const anchorKey = dateKey(anchor);
-  const days = useMemo(
-    () => calendarDays(new Date(`${anchorKey}T00:00:00`), calendarView, weekStart),
-    [anchorKey, calendarView, weekStart],
-  );
+  const days = useMemo(() => calendarDays(new Date(`${anchorKey}T00:00:00`), weekStart), [anchorKey, weekStart]);
   const { data, isPending, isError, isFetching, error, refetch } = useScheduleCalendar(
     user?.name,
     days[0],
@@ -54,13 +42,10 @@ const Calendar = () => {
   const locale = i18n.language;
   const longDate = (date: Date) => date.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", weekday: "long" });
   const today = dateKey(new Date());
-  const title =
-    calendarView === "month"
-      ? anchor.toLocaleDateString(locale, { year: "numeric", month: "long" })
-      : `${days[0].toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })} – ${days[6].toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
-  const changePeriod = (date: Date, nextView: CalendarView = calendarView) => {
+  const title = anchor.toLocaleDateString(locale, { year: "numeric", month: "long" });
+  const changePeriod = (date: Date) => {
     setSelectedDate(null);
-    setParams({ view: nextView, date: dateKey(date) });
+    setParams({ view: "month", date: dateKey(date) });
   };
 
   return (
@@ -74,13 +59,13 @@ const Calendar = () => {
           <p className="mt-1 text-sm text-muted-foreground">{t("schedule.description")}</p>
         </div>
         <div className="inline-flex rounded-lg border bg-muted/40 p-1" role="group" aria-label={t("schedule.view")}>
-          {(["today", "month", "week"] as const).map((mode) => (
+          {(["today", "month"] as const).map((mode) => (
             <Button
               key={mode}
               size="sm"
               variant={view === mode ? "secondary" : "ghost"}
               aria-pressed={view === mode}
-              onClick={() => (mode === "today" ? setParams({ view: mode }) : changePeriod(anchor, mode))}
+              onClick={() => (mode === "today" ? setParams({ view: mode }) : changePeriod(anchor))}
             >
               {t(`schedule.${mode}`)}
             </Button>
@@ -102,19 +87,14 @@ const Calendar = () => {
                   size="icon"
                   variant="ghost"
                   aria-label={t("schedule.previous")}
-                  onClick={() => changePeriod(moveCalendar(anchor, calendarView, -1))}
+                  onClick={() => changePeriod(moveCalendar(anchor, -1))}
                 >
                   <ChevronLeftIcon className="size-4" />
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => changePeriod(new Date())}>
                   {t("common.today")}
                 </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t("schedule.next")}
-                  onClick={() => changePeriod(moveCalendar(anchor, calendarView, 1))}
-                >
+                <Button size="icon" variant="ghost" aria-label={t("schedule.next")} onClick={() => changePeriod(moveCalendar(anchor, 1))}>
                   <ChevronRightIcon className="size-4" />
                 </Button>
               </div>
@@ -154,9 +134,9 @@ const Calendar = () => {
                       aria-current={key === today ? "date" : undefined}
                       className={cn(
                         "flex min-w-0 flex-col items-start justify-between rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait sm:p-3",
-                        calendarView === "month" ? "min-h-16 sm:min-h-24" : "min-h-24 sm:min-h-36",
+                        "min-h-16 sm:min-h-24",
                         HEAT_CLASSES[ready ? calendarHeat(count) : 0],
-                        calendarView === "month" && day.getMonth() !== anchor.getMonth() && "opacity-45",
+                        day.getMonth() !== anchor.getMonth() && "opacity-45",
                         key === today && "border-primary",
                       )}
                     >
