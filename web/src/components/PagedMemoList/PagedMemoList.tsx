@@ -1,10 +1,8 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { closestCenter, DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
-import { Fragment, type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { MentionResolutionProvider } from "@/components/MemoContent/MentionResolutionContext";
 import { deriveDefaultCreateTimeFromFilters } from "@/components/MemoEditor/utils/deriveDefaultCreateTime";
 import { Button } from "@/components/ui/button";
@@ -20,7 +18,7 @@ import MemoEditor from "../MemoEditor";
 import MemoFilters from "../MemoFilters";
 import Placeholder from "../Placeholder";
 import Skeleton from "../Skeleton";
-import { ListEditBridge, ListEditProvider } from "./ListEditContext";
+import { MemoMoveContext } from "./MemoMoveContext";
 
 interface Props {
   renderer: (memo: Memo) => ReactElement;
@@ -35,8 +33,7 @@ interface Props {
   /** When true, render the inline MemoEditor above the list (e.g. on the Home page). */
   showMemoEditor?: boolean;
   editorCacheKey?: string;
-  draggable?: boolean;
-  onReorder?: (fromIndex: number, toIndex: number, memo: Memo, reordered: Memo[]) => void;
+  onReorder?: (fromIndex: number, toIndex: number, memo: Memo, reordered: Memo[]) => Promise<void>;
   /** When true, insert visual group separators between smart-sort tiers (expired / planned / unscheduled). */
   smartGroups?: boolean;
 }
@@ -99,9 +96,9 @@ const PagedMemoList = (props: Props) => {
   const queryClient = useQueryClient();
   const { filters } = useMemoFilterContext();
 
-  // Track whether any MemoEditor in this list has non-empty content, to disable drag-and-drop.
-  // Uses ListEditProvider context + bridge so both the inline editor and in-place memo editors can report.
-  const [isEditing, setIsEditing] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const movingRef = useRef(false);
+  const [optimisticOrder, setOptimisticOrder] = useState<string[] | null>(null);
 
   const showMemoEditor = props.showMemoEditor ?? false;
   const defaultCreateTime = useMemo(() => deriveDefaultCreateTimeFromFilters(filters), [filters]);
@@ -144,10 +141,12 @@ const PagedMemoList = (props: Props) => {
   // Only split when listState is NORMAL (default) — when explicitly filtering
   // for COMPLETED or ARCHIVED, don't split.
   const shouldSplit = listState === State.NORMAL;
-  const activeMemos = useMemo(
-    () => (shouldSplit ? sortedMemoList.filter((m) => m.state !== State.COMPLETED) : sortedMemoList),
-    [sortedMemoList, shouldSplit],
-  );
+  const activeMemos = useMemo(() => {
+    const items = shouldSplit ? sortedMemoList.filter((m) => m.state !== State.COMPLETED) : sortedMemoList;
+    if (!optimisticOrder) return items;
+    const positions = new Map(optimisticOrder.map((name, i) => [name, i]));
+    return [...items].sort((a, b) => (positions.get(a.name) ?? Infinity) - (positions.get(b.name) ?? Infinity));
+  }, [sortedMemoList, shouldSplit, optimisticOrder]);
   const completedMemos = useMemo(() => {
     if (!shouldSplit) return [];
     return sortedMemoList
@@ -191,25 +190,37 @@ const PagedMemoList = (props: Props) => {
     return items;
   }, [activeMemos, props.smartGroups, getSmartTier, GROUP_LABELS]);
 
-  // Drag-and-drop sensors.
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
-  // Handle drag end: reorder active memos and call onReorder callback.
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = activeMemos.findIndex((m) => m.name === active.id);
-      const newIndex = activeMemos.findIndex((m) => m.name === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const memo = activeMemos[oldIndex];
-      const newItems = arrayMove(activeMemos, oldIndex, newIndex);
-      props.onReorder?.(oldIndex, newIndex, memo, newItems);
-    },
-    [activeMemos, props],
-  );
+  const moveMemo = async (name: string, direction: -1 | 1) => {
+    if (movingRef.current || !props.onReorder) return;
+    movingRef.current = true;
+    setMoving(true);
+    try {
+      // Resolve pagination before choosing neighbors or initializing missing keys.
+      let items = activeMemos;
+      let more = hasNextPage;
+      while (more) {
+        const result = await fetchNextPage();
+        if (result.isError) throw result.error;
+        items = result.data?.pages.flatMap((page) => page.memos).filter((memo) => memo.state !== State.COMPLETED) ?? items;
+        more = result.hasNextPage;
+      }
+      const from = items.findIndex((memo) => memo.name === name);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= items.length) return;
+      const reordered = [...items];
+      const [memo] = reordered.splice(from, 1);
+      reordered.splice(to, 0, memo);
+      setOptimisticOrder(reordered.map((item) => item.name));
+      await props.onReorder(from, to, memo, reordered);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ["memos"] });
+      setOptimisticOrder(null);
+      movingRef.current = false;
+      setMoving(false);
+    }
+  };
 
   // Completed section collapse state, persisted to localStorage.
   const [completedCollapsed, setCompletedCollapsed] = useState(() => {
@@ -276,8 +287,7 @@ const PagedMemoList = (props: Props) => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const children = (
-    <ListEditProvider>
-      <ListEditBridge onChange={setIsEditing} />
+    <>
       <MentionResolutionProvider contents={sortedMemoList.map((memo) => memo.content)}>
         <div className="flex flex-col justify-start w-full max-w-2xl mx-auto">
           {/* Show skeleton loader during initial load */}
@@ -295,32 +305,28 @@ const PagedMemoList = (props: Props) => {
                 />
               ) : null}
               {props.showFilters !== false && <MemoFilters />}
-              {props.draggable ? (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={activeMemos.map((m) => m.name)} strategy={verticalListSortingStrategy}>
-                    {activeRenderItems.map((item) =>
-                      item.kind === "memo" ? (
-                        <SortableMemoItem key={item.key} id={item.memo.name} disabled={isEditing}>
-                          {props.renderer(item.memo)}
-                        </SortableMemoItem>
-                      ) : (
-                        <div key={item.key} className="px-2 pt-3 pb-1 text-xs text-muted-foreground">
-                          {GROUP_LABELS[item.tier]}
-                        </div>
-                      ),
-                    )}
-                  </SortableContext>
-                </DndContext>
-              ) : (
-                activeRenderItems.map((item) =>
-                  item.kind === "memo" ? (
-                    <Fragment key={item.key}>{props.renderer(item.memo)}</Fragment>
-                  ) : (
-                    <div key={item.key} className="px-2 pt-3 pb-1 text-xs text-muted-foreground">
-                      {GROUP_LABELS[item.tier]}
-                    </div>
-                  ),
-                )
+              {activeRenderItems.map((item) =>
+                item.kind === "memo" ? (
+                  <MemoMoveContext.Provider
+                    key={item.key}
+                    value={
+                      props.onReorder
+                        ? {
+                            canMoveUp: activeMemos[0]?.name !== item.memo.name,
+                            canMoveDown: hasNextPage || activeMemos[activeMemos.length - 1]?.name !== item.memo.name,
+                            moving,
+                            move: (direction) => void moveMemo(item.memo.name, direction),
+                          }
+                        : null
+                    }
+                  >
+                    {props.renderer(item.memo)}
+                  </MemoMoveContext.Provider>
+                ) : (
+                  <div key={item.key} className="px-2 pt-3 pb-1 text-xs text-muted-foreground">
+                    {GROUP_LABELS[item.tier]}
+                  </div>
+                ),
               )}
 
               {/* Completed section (collapsible) */}
@@ -357,7 +363,7 @@ const PagedMemoList = (props: Props) => {
           )}
         </div>
       </MentionResolutionProvider>
-    </ListEditProvider>
+    </>
   );
 
   return children;
@@ -394,24 +400,6 @@ const BackToTop = () => {
       {t("router.back-to-top")}
       <ArrowUpIcon className="ml-1 w-4 h-auto" />
     </Button>
-  );
-};
-
-const SortableMemoItem: React.FC<{ id: string; disabled?: boolean; children: React.ReactNode }> = ({ id, disabled, children }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : undefined,
-    position: "relative",
-    cursor: disabled ? undefined : "grab",
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...(disabled ? {} : listeners)}>
-      {children}
-    </div>
   );
 };
 

@@ -1,4 +1,26 @@
 {
+  "schedule": {
+    "count": "{{count}} items",
+    "title": "Calendar",
+    "description": "Your planned days, at a glance.",
+    "view": "Calendar view",
+    "month": "Month",
+    "week": "Week",
+    "previous": "Previous period",
+    "next": "Next period",
+    "loading": "Loading scheduled items…",
+    "load-error": "Could not load this calendar.",
+    "retry": "Retry",
+    "count_one": "{{count}} item",
+    "count_other": "{{count}} items",
+    "items": "items",
+    "rule": "By plan dates · includes completed items",
+    "less": "Less",
+    "more": "More",
+    "empty": "No items planned for this day.",
+    "planned": "Planned",
+    "untitled": "Untitled item"
+  },
   "about": {
     "blogs": "Blogs",
     "description": "A privacy-first, lightweight note-taking service. Easily capture and share your great thoughts.",
@@ -244,6 +266,8 @@
     "content-syntax": "Content syntax"
   },
   "memo": {
+    "move-up": "Move up",
+    "move-down": "Move down",
     "archived-at": "Archived at",
     "click-to-hide-sensitive-content": "Click to hide sensitive content",
     "click-to-show-sensitive-content": "Click to show sensitive content",

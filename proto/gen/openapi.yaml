@@ -3271,6 +3271,12 @@ components:
                         Optional. The planned end time of the memo.
                          When set, indicates the deadline or planned completion time.
                     format: date-time
+                todayOrder:
+                    type: string
+                    description: |-
+                        The display order in the Today view.
+                         Uses fractional indexing (base-62) for insertion between arbitrary items.
+                         Empty means the memo has not been explicitly ordered in Today view.
         MemoRelation:
             required:
                 - memo

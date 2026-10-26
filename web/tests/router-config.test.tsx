@@ -52,7 +52,7 @@ describe("router configuration", () => {
   });
 
   it("wraps authenticated-only pages in RequireAuthRoute", () => {
-    for (const path of [ROUTES.ARCHIVED, ROUTES.ATTACHMENTS, ROUTES.INBOX, ROUTES.SETTING]) {
+    for (const path of [ROUTES.CALENDAR, ROUTES.ARCHIVED, ROUTES.ATTACHMENTS, ROUTES.INBOX, ROUTES.SETTING]) {
       expect(hasAncestorOfType(routeConfig, path, RequireAuthRoute)).toBe(true);
     }
   });

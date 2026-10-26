@@ -3,7 +3,6 @@ export { useAudioRecorder } from "./useAudioRecorder";
 export { useAudioWaveform } from "./useAudioWaveform";
 export { useAutoSave } from "./useAutoSave";
 export { useBlobUrls } from "./useBlobUrls";
-export { useDragAndDrop } from "./useDragAndDrop";
 export { useFileUpload } from "./useFileUpload";
 export { useFocusMode } from "./useFocusMode";
 export { useKeyboard } from "./useKeyboard";

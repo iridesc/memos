@@ -30,6 +30,7 @@ const Archived = lazyWithReload(() => import("@/pages/Archived"));
 const AuthCallback = lazyWithReload(() => import("@/pages/AuthCallback"));
 const Explore = lazyWithReload(() => import("@/pages/Explore"));
 const Home = lazyWithReload(() => import("@/pages/Home"));
+const Calendar = lazyWithReload(() => import("@/pages/Calendar"));
 const Today = lazyWithReload(() => import("@/pages/Today"));
 const Inboxes = lazyWithReload(() => import("@/pages/Inboxes"));
 const MemoDetail = lazyWithReload(() => import("@/pages/MemoDetail"));
@@ -93,6 +94,7 @@ export const routeConfig: RouteObject[] = [
               {
                 element: <RequireAuthRoute />,
                 children: [
+                  { path: Routes.CALENDAR, element: <Calendar /> },
                   { path: Routes.ARCHIVED, element: <Archived /> },
                   { path: Routes.SHORTCUTS, element: <Shortcuts /> },
                 ],

@@ -558,9 +558,9 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 				ts = &clear
 			}
 			update.PlanEndTs = ts
-	} else if path == "today_order" {
-		update.TodayOrder = request.Memo.TodayOrder
-	} else if path == "attachments" {
+		} else if path == "today_order" {
+			update.TodayOrder = &request.Memo.TodayOrder
+		} else if path == "attachments" {
 			if err := s.setMemoAttachmentsInternal(ctx, user, memo, request.Memo.Attachments); err != nil {
 				return nil, errors.Wrap(err, "failed to set memo attachments")
 			}
@@ -571,20 +571,20 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 		}
 	}
 
-		// Validate plan times only when they are being updated.
-		if update.PlanStartTs != nil || update.PlanEndTs != nil {
-			effectiveStart := memo.PlanStartTs
-			if update.PlanStartTs != nil {
-				effectiveStart = update.PlanStartTs
-			}
-			effectiveEnd := memo.PlanEndTs
-			if update.PlanEndTs != nil {
-				effectiveEnd = update.PlanEndTs
-			}
-			if err := validatePlanTimes(effectiveStart, effectiveEnd, true); err != nil {
-				return nil, err
-			}
+	// Validate plan times only when they are being updated.
+	if update.PlanStartTs != nil || update.PlanEndTs != nil {
+		effectiveStart := memo.PlanStartTs
+		if update.PlanStartTs != nil {
+			effectiveStart = update.PlanStartTs
 		}
+		effectiveEnd := memo.PlanEndTs
+		if update.PlanEndTs != nil {
+			effectiveEnd = update.PlanEndTs
+		}
+		if err := validatePlanTimes(effectiveStart, effectiveEnd, true); err != nil {
+			return nil, err
+		}
+	}
 
 	if err = s.Store.UpdateMemo(ctx, update); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update memo")

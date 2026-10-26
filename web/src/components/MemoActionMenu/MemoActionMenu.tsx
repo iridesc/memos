@@ -1,6 +1,8 @@
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
   BookmarkMinusIcon,
   BookmarkPlusIcon,
   CheckCheckIcon,
@@ -13,8 +15,9 @@ import {
   MoreVerticalIcon,
   TrashIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { MemoMoveContext } from "@/components/PagedMemoList/MemoMoveContext";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,6 +37,7 @@ import type { MemoActionMenuProps } from "./types";
 const MemoActionMenu = (props: MemoActionMenuProps) => {
   const { memo, readonly } = props;
   const t = useTranslate();
+  const movement = useContext(MemoMoveContext);
 
   // Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -85,6 +89,19 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
             <DropdownMenuItem onClick={handleEditMemoClick}>
               <Edit3Icon className="w-4 h-auto" />
               {t("common.edit")}
+            </DropdownMenuItem>
+          </>
+        )}
+
+        {movement && !readonly && !isFrozen && !isComment && (
+          <>
+            <DropdownMenuItem disabled={movement.moving || !movement.canMoveUp} onClick={() => movement.move(-1)}>
+              <ArrowUpIcon className="w-4 h-auto" />
+              {t("memo.move-up")}
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={movement.moving || !movement.canMoveDown} onClick={() => movement.move(1)}>
+              <ArrowDownIcon className="w-4 h-auto" />
+              {t("memo.move-down")}
             </DropdownMenuItem>
           </>
         )}

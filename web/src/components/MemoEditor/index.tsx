@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { InstanceSetting_Key } from "@/types/proto/api/v1/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityFromString } from "@/utils/memo";
-import { useListEditReporter } from "../PagedMemoList/ListEditContext";
 import {
   AudioRecorderPanel,
   EditorContent,
@@ -94,16 +93,9 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
     }
   }, [state.content]);
 
-  // Notify parent list (via callback and/or context) when the editor is active.
-  const enterEdit = useListEditReporter();
   useEffect(() => {
-    const isEditing = state.content.length > 0;
-    onEditingStateChange?.(isEditing);
-
-    if (!isEditing || !enterEdit) return;
-    const exit = enterEdit();
-    return exit;
-  }, [state.content, onEditingStateChange, enterEdit]);
+    onEditingStateChange?.(state.content.length > 0);
+  }, [state.content, onEditingStateChange]);
 
   const handleEditorFocus = useCallback(() => {
     // Only auto-insert in create mode (not edit), when content is empty,

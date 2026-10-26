@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import Editor, { type EditorRefActions } from "../Editor";
-import { useBlobUrls, useDragAndDrop } from "../hooks";
+import { useBlobUrls } from "../hooks";
 import { useEditorContext } from "../state";
 import type { EditorContentProps } from "../types";
 import type { LocalFile } from "../types/attachment";
@@ -8,15 +8,6 @@ import type { LocalFile } from "../types/attachment";
 export const EditorContent = forwardRef<EditorRefActions, EditorContentProps>(({ placeholder, onFocus }, ref) => {
   const { state, actions, dispatch } = useEditorContext();
   const { createBlobUrl } = useBlobUrls();
-
-  const { dragHandlers } = useDragAndDrop((files: FileList) => {
-    const localFiles: LocalFile[] = Array.from(files).map((file) => ({
-      file,
-      previewUrl: createBlobUrl(file),
-      origin: "upload",
-    }));
-    localFiles.forEach((localFile) => dispatch(actions.addLocalFile(localFile)));
-  });
 
   const handleCompositionStart = () => {
     dispatch(actions.setComposing(true));
@@ -57,7 +48,7 @@ export const EditorContent = forwardRef<EditorRefActions, EditorContentProps>(({
   };
 
   return (
-    <div className="w-full flex flex-col flex-1" {...dragHandlers}>
+    <div className="w-full flex flex-col flex-1">
       <Editor
         ref={ref}
         className="memo-editor-content"

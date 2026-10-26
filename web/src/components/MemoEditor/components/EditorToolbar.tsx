@@ -145,12 +145,12 @@ const PlanTimeEditor: FC<{
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={hasPlanTime ? "text-primary bg-primary/10" : ""}>
+        <Button variant="ghost" size="sm" className={`min-w-0 max-w-full ${hasPlanTime ? "text-primary bg-primary/10" : ""}`}>
           <CalendarIcon className="w-4 h-auto" />
-          {hasPlanTime && <span className="ml-1 text-xs">{displayRange(planStartTime, planEndTime)}</span>}
+          {hasPlanTime && <span className="ml-1 truncate text-xs">{displayRange(planStartTime, planEndTime)}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[336px]">
+      <PopoverContent align="end" className="w-[336px] max-w-[calc(100vw-2rem)]">
         <div className="flex flex-col gap-3 p-1">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-muted-foreground">{t("common.plan-start")}</label>
@@ -158,7 +158,7 @@ const PlanTimeEditor: FC<{
               <input
                 type="date"
                 min={minDate}
-                className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                className="min-w-0 w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                 value={startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
               />
@@ -193,7 +193,7 @@ const PlanTimeEditor: FC<{
               <input
                 type="date"
                 min={startDate || minDate}
-                className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                className="min-w-0 w-0 flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                 value={endDate}
                 onChange={(e) => handleEndDateChange(e.target.value)}
                 disabled={!planStartTime}
@@ -263,7 +263,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoNa
   };
 
   return (
-    <div className="w-full flex flex-row justify-between items-center mb-2">
+    <div className="w-full flex flex-row flex-wrap justify-between items-center gap-2 mb-2">
       <div className="flex flex-row justify-start items-center">
         <InsertMenu
           isUploading={state.ui.isLoading.uploading}
@@ -280,7 +280,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoNa
         planEndTime={state.timestamps.planEndTime}
         onChange={(times) => dispatch(actions.setTimestamps(times))}
       />
-      <div className="flex flex-row justify-end items-center gap-2">
+      <div className="ml-auto max-w-full flex flex-wrap justify-end items-center gap-2">
         <VisibilitySelector value={state.metadata.visibility} onChange={handleVisibilityChange} />
 
         {onCancel && (
@@ -289,7 +289,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoNa
           </Button>
         )}
 
-        <Button onClick={onSave} disabled={!valid || isSaving}>
+        <Button className="shrink-0" onClick={onSave} disabled={!valid || isSaving}>
           {isSaving ? t("editor.saving") : t("editor.save")}
         </Button>
       </div>

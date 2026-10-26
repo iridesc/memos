@@ -4,8 +4,8 @@ import PagedMemoList from "@/components/PagedMemoList";
 import { useMemoFilters } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useUpdateMemo } from "@/hooks/useMemoQueries";
-import { computeReorderKey } from "@/lib/today-order";
-import { Memo } from "@/types/proto/api/v1/memo_service_pb";
+import { planMemoMove } from "@/lib/today-order";
+import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 
 const Today = () => {
   const user = useCurrentUser();
@@ -35,30 +35,25 @@ const Today = () => {
     return todayFilter;
   }, [todayFilter, userFilter]);
 
-  // Server-side smart sort: expired → planned → completed.
-  // Within expired: most overdue first. Within planned: earliest start first.
-  // Unscheduled memos (no plan times) are excluded from today view.
-  // No client-side sort needed — server handles tiered ordering.
+  // Keep the explicit Today sequence on the server.
   const orderBy = "today_order";
 
-  // Handle drag-and-drop reorder: compute new plan times based on neighbors.
   const handleReorder = useCallback(
-    (_fromIndex: number, _toIndex: number, memo: Memo, reordered: Memo[]) => {
-      const newIndex = reordered.findIndex((m) => m.name === memo.name);
-      if (newIndex === -1) return;
-
-      const prev = newIndex > 0 ? reordered[newIndex - 1] : null;
-      const next = newIndex < reordered.length - 1 ? reordered[newIndex + 1] : null;
-
-      const prevOrder = (prev as { todayOrder?: string })?.todayOrder ?? null;
-      const nextOrder = (next as { todayOrder?: string })?.todayOrder ?? null;
-
-      const { key } = computeReorderKey(prevOrder, nextOrder);
-      const update = { name: memo.name, todayOrder: key };
-      updateMemo.mutateAsync({
-        update: update as Partial<Memo>,
-        updateMask: ["today_order"],
-      });
+    async (_fromIndex: number, toIndex: number, _memo: Memo, reordered: Memo[]) => {
+      const updates = planMemoMove(reordered, toIndex);
+      const saved: Memo[] = [];
+      try {
+        for (const { memo: item, key } of updates) {
+          await updateMemo.mutateAsync({ update: { name: item.name, todayOrder: key }, updateMask: ["today_order"] });
+          saved.push(item);
+        }
+      } catch (error) {
+        // Initialization can touch older memos without keys. Restore successful writes on failure.
+        for (const item of saved.reverse()) {
+          await updateMemo.mutateAsync({ update: { name: item.name, todayOrder: item.todayOrder }, updateMask: ["today_order"] });
+        }
+        throw error;
+      }
     },
     [updateMemo],
   );
@@ -73,7 +68,6 @@ const Today = () => {
         showFilters={false}
         showMemoEditor
         editorCacheKey="today-memo-editor"
-        draggable
         onReorder={handleReorder}
         smartGroups={false}
       />
