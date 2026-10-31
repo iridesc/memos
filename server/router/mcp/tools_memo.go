@@ -3,12 +3,15 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	v1pb "github.com/usememos/memodo/proto/gen/api/v1"
 	"github.com/usememos/memodo/server/auth"
@@ -37,6 +40,11 @@ type memoJSON struct {
 	State      string        `json:"state"`
 	Property   *propertyJSON `json:"property,omitempty"`
 	Parent     string        `json:"parent,omitempty"`
+	// PlanStartTime and PlanEndTime are Unix seconds; omitted when unset.
+	PlanStartTime *int64 `json:"plan_start_time,omitempty"`
+	PlanEndTime   *int64 `json:"plan_end_time,omitempty"`
+	// TodayOrder is the fractional-indexed display order in the Today view.
+	TodayOrder string `json:"today_order,omitempty"`
 }
 
 type memoListJSON struct {
@@ -67,6 +75,11 @@ func storeMemoToJSON(m *store.Memo) memoJSON {
 				HasIncompleteTasks: p.HasIncompleteTasks,
 			}
 		}
+	}
+	j.PlanStartTime = m.PlanStartTs
+	j.PlanEndTime = m.PlanEndTs
+	if m.TodayOrder != nil {
+		j.TodayOrder = *m.TodayOrder
 	}
 	if m.ParentUID != nil {
 		j.Parent = "memos/" + *m.ParentUID
@@ -162,11 +175,143 @@ func parseVisibility(s string) (store.Visibility, error) {
 // parseRowStatus validates a state string and returns the store constant.
 func parseRowStatus(s string) (store.RowStatus, error) {
 	switch rs := store.RowStatus(s); rs {
-	case store.Normal, store.Archived:
+	case store.Normal, store.Archived, store.Completed:
 		return rs, nil
 	default:
-		return "", errors.Errorf("state must be NORMAL or ARCHIVED; got %q", s)
+		return "", errors.Errorf("state must be NORMAL, COMPLETED, or ARCHIVED; got %q", s)
 	}
+}
+
+// planTimeArg is the parsed form of a plan_start_time / plan_end_time argument.
+type planTimeArg struct {
+	present bool
+	isNull  bool
+	value   int64
+}
+
+func getPlanTimeArg(req mcp.CallToolRequest, name string) planTimeArg {
+	args := req.GetArguments()
+	raw, ok := args[name]
+	if !ok {
+		return planTimeArg{}
+	}
+	if raw == nil {
+		return planTimeArg{present: true, isNull: true}
+	}
+	switch v := raw.(type) {
+	case float64:
+		return planTimeArg{present: true, value: int64(v)}
+	case int:
+		return planTimeArg{present: true, value: int64(v)}
+	case int64:
+		return planTimeArg{present: true, value: v}
+	case string:
+		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return planTimeArg{present: true, value: parsed}
+		}
+	}
+	return planTimeArg{}
+}
+
+type planTimesResult struct {
+	provided bool
+	clear    bool
+	start    int64
+	end      int64
+}
+
+// parsePlanTimes parses the optional plan_start_time / plan_end_time pair.
+// The two values must be provided together. Explicit nulls for both mean
+// "clear" (only meaningful when updating).
+func parsePlanTimes(req mcp.CallToolRequest) (planTimesResult, error) {
+	start := getPlanTimeArg(req, "plan_start_time")
+	end := getPlanTimeArg(req, "plan_end_time")
+
+	if !start.present && !end.present {
+		return planTimesResult{}, nil
+	}
+	if start.present != end.present {
+		return planTimesResult{}, errors.New("plan_start_time and plan_end_time must be provided together")
+	}
+	if start.isNull || end.isNull {
+		if start.isNull && end.isNull {
+			return planTimesResult{clear: true}, nil
+		}
+		return planTimesResult{}, errors.New("plan_start_time and plan_end_time must both be null to clear")
+	}
+	return planTimesResult{provided: true, start: start.value, end: end.value}, nil
+}
+
+// parseMemoOrderBy applies an AIP-132 style order_by string to the memo find.
+// Supported fields: pinned, create_time, update_time, plan_start_time,
+// plan_end_time, smart, today_order, name.
+func parseMemoOrderBy(orderBy string, find *store.FindMemo) error {
+	if strings.TrimSpace(orderBy) == "" {
+		return errors.New("empty order_by")
+	}
+
+	fields := strings.Split(orderBy, ",")
+	hasPinned := false
+	hasExplicitTimeField := false
+
+	for _, field := range fields {
+		parts := strings.Fields(strings.TrimSpace(field))
+		if len(parts) == 0 {
+			continue
+		}
+
+		fieldName := parts[0]
+		fieldDirection := "desc"
+		if len(parts) > 1 {
+			fieldDirection = strings.ToLower(parts[1])
+			if fieldDirection != "asc" && fieldDirection != "desc" {
+				return errors.Errorf("invalid order direction: %s, must be 'asc' or 'desc'", parts[1])
+			}
+		}
+
+		switch fieldName {
+		case "pinned":
+			hasPinned = true
+			find.OrderByPinned = true
+		case "create_time", "name":
+			if !hasExplicitTimeField {
+				find.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "update_time":
+			if !hasExplicitTimeField {
+				find.OrderByUpdatedTs = true
+				find.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "plan_start_time":
+			if !hasExplicitTimeField {
+				find.OrderByPlanStart = true
+				find.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "plan_end_time":
+			if !hasExplicitTimeField {
+				find.OrderByPlanEnd = true
+				find.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "smart":
+			find.OrderBySmart = true
+			find.SmartNowTs = time.Now().Unix()
+			hasExplicitTimeField = true
+		case "today_order":
+			find.OrderByTodayOrder = true
+			hasExplicitTimeField = true
+		default:
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, today_order, name", fieldName)
+		}
+	}
+
+	if hasPinned && !find.OrderByUpdatedTs && len(fields) == 1 {
+		find.OrderByTimeAsc = false
+	}
+	return nil
 }
 
 func extractUserID(ctx context.Context) (int32, error) {
@@ -183,10 +328,11 @@ func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 			mcp.WithNumber("page_size", mcp.Description("Maximum memos to return (1–100, default 20)")),
 			mcp.WithNumber("page", mcp.Description("Zero-based page index for pagination (default 0)")),
 			mcp.WithString("state",
-				mcp.Enum("NORMAL", "ARCHIVED"),
-				mcp.Description("Filter by state: NORMAL (default) or ARCHIVED"),
+				mcp.Enum("NORMAL", "COMPLETED", "ARCHIVED"),
+				mcp.Description("Filter by state: NORMAL (default; also includes COMPLETED), COMPLETED, or ARCHIVED"),
 			),
-			mcp.WithBoolean("order_by_pinned", mcp.Description("When true, pinned memos appear first (default false)")),
+			mcp.WithBoolean("order_by_pinned", mcp.Description("Deprecated: prefer order_by. When true, pinned memos appear first (default false)")),
+			mcp.WithString("order_by", mcp.Description(`Sort order following AIP-132, e.g. "plan_start_time asc" or "pinned desc, create_time desc". Supported fields: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, today_order, name.`)),
 			mcp.WithString("filter", mcp.Description(`Optional CEL filter (supported subset of standard CEL syntax), e.g. content.contains("keyword") or tags.exists(t, t == "work")`)),
 			mcp.WithOutputSchema[memoListJSON](),
 		)...,
@@ -206,12 +352,14 @@ func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 				mcp.Enum("PRIVATE", "PROTECTED", "PUBLIC"),
 				mcp.Description("Visibility (default: PRIVATE)"),
 			),
+			mcp.WithNumber("plan_start_time", mcp.Description("Planned start time as Unix seconds. Must be provided together with plan_end_time.")),
+			mcp.WithNumber("plan_end_time", mcp.Description("Planned end time as Unix seconds. Must be provided together with plan_start_time.")),
 			mcp.WithOutputSchema[memoJSON](),
 		)...,
 	), s.handleCreateMemo)
 
 	mcpSrv.AddTool(mcp.NewTool("update_memo",
-		updateToolOptions("Update memo", "Update a memo's content, visibility, pin state, or archive state. Requires authentication and ownership. Omit any field to leave it unchanged.",
+		updateToolOptions("Update memo", "Update a memo's content, visibility, pin state, plan times, today order, or state. Requires authentication and ownership. Omit any field to leave it unchanged.",
 			mcp.WithString("name", mcp.Required(), mcp.Description(`Memo resource name, e.g. "memos/abc123"`)),
 			mcp.WithString("content", mcp.Description("New Markdown content")),
 			mcp.WithString("visibility",
@@ -219,9 +367,12 @@ func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 				mcp.Description("New visibility"),
 			),
 			mcp.WithBoolean("pinned", mcp.Description("Pin or unpin the memo")),
+			mcp.WithNumber("plan_start_time", mcp.Description("New planned start time as Unix seconds. Provide together with plan_end_time; pass null for both to clear.")),
+			mcp.WithNumber("plan_end_time", mcp.Description("New planned end time as Unix seconds. Provide together with plan_start_time; pass null for both to clear.")),
+			mcp.WithString("today_order", mcp.Description("Fractional-indexed display order in the Today view. Omit to leave unchanged; empty string clears the order.")),
 			mcp.WithString("state",
-				mcp.Enum("NORMAL", "ARCHIVED"),
-				mcp.Description("Set to ARCHIVED to archive, NORMAL to restore"),
+				mcp.Enum("NORMAL", "COMPLETED", "ARCHIVED"),
+				mcp.Description("Set the memo state: NORMAL, COMPLETED, or ARCHIVED"),
 			),
 			mcp.WithOutputSchema[memoJSON](),
 		)...,
@@ -270,25 +421,34 @@ func (s *MCPService) handleListMemos(ctx context.Context, req mcp.CallToolReques
 		page = 0
 	}
 
-	var rowStatus *store.RowStatus
-	if state := req.GetString("state", "NORMAL"); state != "" {
-		rs, err := parseRowStatus(state)
-		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
-		}
-		rowStatus = &rs
+	state, err := parseRowStatus(req.GetString("state", "NORMAL"))
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
 	limit := pageSize + 1
 	offset := page * pageSize
 	find := &store.FindMemo{
 		ExcludeComments: true,
-		RowStatus:       rowStatus,
 		Limit:           &limit,
 		Offset:          &offset,
-		OrderByPinned:   req.GetBool("order_by_pinned", false),
 	}
-	applyVisibilityFilter(find, userID, rowStatus)
+	switch state {
+	case store.Archived:
+		find.RowStatus = &state
+	case store.Completed:
+		find.RowStatusList = []store.RowStatus{store.Completed}
+	default:
+		find.RowStatusList = []store.RowStatus{store.Normal, store.Completed}
+	}
+	applyVisibilityFilter(find, userID, state)
+	if orderBy := req.GetString("order_by", ""); orderBy != "" {
+		if err := parseMemoOrderBy(orderBy, find); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+	} else if req.GetBool("order_by_pinned", false) {
+		find.OrderByPinned = true
+	}
 	if filter := req.GetString("filter", ""); filter != "" {
 		find.Filters = append(find.Filters, filter)
 	}
@@ -363,12 +523,23 @@ func (s *MCPService) handleCreateMemo(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	created, err := s.apiV1Service.CreateMemo(ctx, &v1pb.CreateMemoRequest{
-		Memo: &v1pb.Memo{
-			Content:    content,
-			Visibility: visibilityToProto(visibility),
-		},
-	})
+	memo := &v1pb.Memo{
+		Content:    content,
+		Visibility: visibilityToProto(visibility),
+	}
+	planTimes, err := parsePlanTimes(req)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	if planTimes.clear {
+		return mcp.NewToolResultError("plan_start_time and plan_end_time cannot be cleared on create"), nil
+	}
+	if planTimes.provided {
+		memo.PlanStartTime = timestamppb.New(time.Unix(planTimes.start, 0))
+		memo.PlanEndTime = timestamppb.New(time.Unix(planTimes.end, 0))
+	}
+
+	created, err := s.apiV1Service.CreateMemo(ctx, &v1pb.CreateMemoRequest{Memo: memo})
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to create memo: %v", err)), nil
 	}
@@ -418,6 +589,24 @@ func (s *MCPService) handleUpdateMemo(ctx context.Context, req mcp.CallToolReque
 		update.Pinned = req.GetBool("pinned", false)
 		updateMask.Paths = append(updateMask.Paths, "pinned")
 	}
+	planTimes, err := parsePlanTimes(req)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	if planTimes.provided {
+		update.PlanStartTime = timestamppb.New(time.Unix(planTimes.start, 0))
+		update.PlanEndTime = timestamppb.New(time.Unix(planTimes.end, 0))
+		updateMask.Paths = append(updateMask.Paths, "plan_start_time", "plan_end_time")
+	} else if planTimes.clear {
+		// Leave the timestamps nil: the API maps nil + mask path to "clear".
+		updateMask.Paths = append(updateMask.Paths, "plan_start_time", "plan_end_time")
+	}
+	if v, ok := args["today_order"]; ok {
+		if order, ok := v.(string); ok {
+			update.TodayOrder = order
+			updateMask.Paths = append(updateMask.Paths, "today_order")
+		}
+	}
 
 	if len(updateMask.Paths) == 0 {
 		return mcp.NewToolResultError("at least one field must be provided to update"), nil
@@ -464,15 +653,14 @@ func (s *MCPService) handleSearchMemos(ctx context.Context, req mcp.CallToolRequ
 
 	limit := 50
 	zero := 0
-	rowStatus := store.Normal
 	find := &store.FindMemo{
 		ExcludeComments: true,
-		RowStatus:       &rowStatus,
+		RowStatusList:   []store.RowStatus{store.Normal, store.Completed},
 		Limit:           &limit,
 		Offset:          &zero,
 		Filters:         []string{fmt.Sprintf(`content.contains(%q)`, query)},
 	}
-	applyVisibilityFilter(find, userID, find.RowStatus)
+	applyVisibilityFilter(find, userID, store.Normal)
 
 	memos, err := s.store.ListMemos(ctx, find)
 	if err != nil {

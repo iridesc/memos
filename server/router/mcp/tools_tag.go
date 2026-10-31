@@ -26,13 +26,12 @@ type tagEntry struct {
 func (s *MCPService) handleListTags(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	userID := auth.GetUserID(ctx)
 
-	rowStatus := store.Normal
 	find := &store.FindMemo{
 		ExcludeComments: true,
 		ExcludeContent:  true,
-		RowStatus:       &rowStatus,
+		RowStatusList:   []store.RowStatus{store.Normal, store.Completed},
 	}
-	applyVisibilityFilter(find, userID, find.RowStatus)
+	applyVisibilityFilter(find, userID, store.Normal)
 
 	memos, err := s.store.ListMemos(ctx, find)
 	if err != nil {

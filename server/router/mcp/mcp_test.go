@@ -603,3 +603,125 @@ func TestMCPRelationAndAttachmentMutationsEmitMemoUpdated(t *testing.T) {
 	require.False(t, relinkResult.IsError)
 	requireNoSSEEvent(t, client)
 }
+
+func TestMCPMemoPlanTimesAndTodayOrder(t *testing.T) {
+	ts := newTestMCPService(t)
+	user := ts.createUser(t, "author")
+	ctx := withUser(context.Background(), user.ID)
+
+	start := time.Now().Add(1 * time.Hour).Unix()
+	end := time.Now().Add(2 * time.Hour).Unix()
+
+	createResult, err := ts.service.handleCreateMemo(ctx, toolRequest("create_memo", map[string]any{
+		"content":         "planned memo",
+		"plan_start_time": float64(start),
+		"plan_end_time":   float64(end),
+	}))
+	require.NoError(t, err)
+	require.False(t, createResult.IsError)
+
+	var created memoJSON
+	require.NoError(t, json.Unmarshal([]byte(firstText(t, createResult)), &created))
+	require.NotNil(t, created.PlanStartTime)
+	require.Equal(t, start, *created.PlanStartTime)
+	require.NotNil(t, created.PlanEndTime)
+	require.Equal(t, end, *created.PlanEndTime)
+
+	newStart := time.Now().Add(3 * time.Hour).Unix()
+	newEnd := time.Now().Add(4 * time.Hour).Unix()
+	updateResult, err := ts.service.handleUpdateMemo(ctx, toolRequest("update_memo", map[string]any{
+		"name":            created.Name,
+		"today_order":     "a0",
+		"plan_start_time": float64(newStart),
+		"plan_end_time":   float64(newEnd),
+	}))
+	require.NoError(t, err)
+	require.False(t, updateResult.IsError)
+
+	var updated memoJSON
+	require.NoError(t, json.Unmarshal([]byte(firstText(t, updateResult)), &updated))
+	require.Equal(t, "a0", updated.TodayOrder)
+	require.NotNil(t, updated.PlanStartTime)
+	require.Equal(t, newStart, *updated.PlanStartTime)
+	require.NotNil(t, updated.PlanEndTime)
+	require.Equal(t, newEnd, *updated.PlanEndTime)
+
+	clearResult, err := ts.service.handleUpdateMemo(ctx, toolRequest("update_memo", map[string]any{
+		"name":            created.Name,
+		"plan_start_time": nil,
+		"plan_end_time":   nil,
+	}))
+	require.NoError(t, err)
+	require.False(t, clearResult.IsError)
+
+	var cleared memoJSON
+	require.NoError(t, json.Unmarshal([]byte(firstText(t, clearResult)), &cleared))
+	require.Nil(t, cleared.PlanStartTime)
+	require.Nil(t, cleared.PlanEndTime)
+	require.Equal(t, "a0", cleared.TodayOrder)
+
+	// Partial plan times must be rejected.
+	partialResult, err := ts.service.handleCreateMemo(ctx, toolRequest("create_memo", map[string]any{
+		"content":         "partial",
+		"plan_start_time": float64(time.Now().Add(1 * time.Hour).Unix()),
+	}))
+	require.NoError(t, err)
+	require.True(t, partialResult.IsError)
+	require.Contains(t, firstText(t, partialResult), "must be provided together")
+}
+
+func TestMCPListMemosCompletedStateAndOrderBy(t *testing.T) {
+	ts := newTestMCPService(t)
+	user := ts.createUser(t, "author")
+	ctx := withUser(context.Background(), user.ID)
+
+	early := ts.createMemo(t, user.ID, store.Public, "early")
+	late := ts.createMemo(t, user.ID, store.Public, "late")
+
+	earlyStart := time.Now().Add(1 * time.Hour).Unix()
+	earlyEnd := time.Now().Add(2 * time.Hour).Unix()
+	lateStart := time.Now().Add(3 * time.Hour).Unix()
+	lateEnd := time.Now().Add(4 * time.Hour).Unix()
+	require.NoError(t, ts.store.UpdateMemo(context.Background(), &store.UpdateMemo{
+		ID:          early.ID,
+		PlanStartTs: &earlyStart,
+		PlanEndTs:   &earlyEnd,
+	}))
+	require.NoError(t, ts.store.UpdateMemo(context.Background(), &store.UpdateMemo{
+		ID:          late.ID,
+		PlanStartTs: &lateStart,
+		PlanEndTs:   &lateEnd,
+	}))
+
+	completed := store.Completed
+	require.NoError(t, ts.store.UpdateMemo(context.Background(), &store.UpdateMemo{
+		ID:        early.ID,
+		RowStatus: &completed,
+	}))
+
+	var payload struct {
+		Memos []memoJSON `json:"memos"`
+	}
+
+	// Default list includes completed memos and sorts by plan_start_time asc.
+	result, err := ts.service.handleListMemos(ctx, toolRequest("list_memos", map[string]any{
+		"order_by": "plan_start_time asc",
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+	require.NoError(t, json.Unmarshal([]byte(firstText(t, result)), &payload))
+	require.Len(t, payload.Memos, 2)
+	require.Equal(t, "memos/"+early.UID, payload.Memos[0].Name)
+	require.Equal(t, "COMPLETED", payload.Memos[0].State)
+	require.Equal(t, "memos/"+late.UID, payload.Memos[1].Name)
+
+	// COMPLETED-only filter.
+	completedResult, err := ts.service.handleListMemos(ctx, toolRequest("list_memos", map[string]any{
+		"state": "COMPLETED",
+	}))
+	require.NoError(t, err)
+	require.False(t, completedResult.IsError)
+	require.NoError(t, json.Unmarshal([]byte(firstText(t, completedResult)), &payload))
+	require.Len(t, payload.Memos, 1)
+	require.Equal(t, "memos/"+early.UID, payload.Memos[0].Name)
+}

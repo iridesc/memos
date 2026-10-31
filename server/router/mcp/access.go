@@ -46,8 +46,8 @@ func hasMemoOwnership(memo *store.Memo, userID int32) bool {
 }
 
 // applyVisibilityFilter restricts find to memos the caller may see.
-func applyVisibilityFilter(find *store.FindMemo, userID int32, rowStatus *store.RowStatus) {
-	if rowStatus != nil && *rowStatus == store.Archived {
+func applyVisibilityFilter(find *store.FindMemo, userID int32, state store.RowStatus) {
+	if state == store.Archived {
 		if userID == 0 {
 			impossibleCreatorID := int32(-1)
 			find.CreatorID = &impossibleCreatorID

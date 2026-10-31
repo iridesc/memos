@@ -77,11 +77,11 @@ For Streamable HTTP safety, requests with an `Origin` header must be same-origin
 
 | Tool | Description | Required params | Optional params |
 |---|---|---|---|
-| `list_memos` | List memos | — | `page_size`, `page`, `state`, `order_by_pinned`, `filter` (supported subset of standard CEL syntax) |
+| `list_memos` | List memos | — | `page_size`, `page`, `state` (NORMAL/COMPLETED/ARCHIVED), `order_by` (AIP-132: `pinned`, `create_time`, `update_time`, `plan_start_time`, `plan_end_time`, `smart`, `today_order`, `name`), `order_by_pinned` (deprecated), `filter` (supported subset of standard CEL syntax) |
 | `get_memo` | Get a single memo | `name` | — |
 | `search_memos` | Full-text search | `query` | — |
-| `create_memo` | Create a memo | `content` | `visibility` |
-| `update_memo` | Update a memo | `name` | `content`, `visibility`, `pinned`, `state` |
+| `create_memo` | Create a memo | `content` | `visibility`, `plan_start_time`, `plan_end_time` |
+| `update_memo` | Update a memo | `name` | `content`, `visibility`, `pinned`, `plan_start_time`, `plan_end_time`, `today_order`, `state` (NORMAL/COMPLETED/ARCHIVED) |
 | `delete_memo` | Delete a memo | `name` | — |
 | `list_memo_comments` | List comments | `name` | — |
 | `create_memo_comment` | Add a comment | `name`, `content` | — |
