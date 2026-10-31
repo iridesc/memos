@@ -114,25 +114,3 @@ When building or deploying containers for this project, prefer the following ord
 Build command: `podman build -t irid/memodo:latest -f scripts/Dockerfile .`
 Push command: `podman push irid/memodo:latest`
 Deploy command: `podman-compose pull && podman-compose down && podman-compose up -d`
-
-## NAS Deployment Environment
-
-Production instance: https://memodo.irid.cc — runs on a UGREEN NAS (UGOS Pro / Debian 12, x86_64)
-behind a caddy reverse proxy. Full details, deployment recipe and known pitfalls: **`docs/nas-deployment.md`**.
-
-Credentials are **not** in the repo — read them from `~/.config/memodo/nas.env` (local, 0600).
-
-Quick facts:
-
-- **IPv6-only host** `2408:8270:a71:7d0:a47c:e513:20f2:156f` (`direct.disk.irid.cc`, AAAA only, no A record).
-  Connect over IPv6; if SSH fails with `kex_exchange_identification: read: Connection reset by peer`,
-  suspect a local TUN proxy (sing-box / onexray) hijacking IPv6 — not the NAS.
-- **No SFTP subsystem on the NAS** → `scp` fails with `Connection closed`. Upload via
-  `cat file | ssh 'cat > /remote/path'` (works at ~10MB/s).
-- **NAS `docker pull` is broken**: `/etc/docker/daemon.json` points the daemon at an unreachable
-  HTTP proxy (`192.168.1.2:8101`). Always ship images as `podman save | gzip` archives and
-  `docker load` them on the NAS.
-- Deploy dir: `/volume1/docker/memodo` (`docker-compose.yaml`, `memodo-data/`, `releases/`, `backups/`);
-  container `memodo` uses `expose: 5230` + external network `caddy-network`.
-- Verify a deploy by asserting `commit` in the Connect `GetInstanceProfile` response, plus
-  `PRAGMA quick_check` = ok and an unchanged memo count.
