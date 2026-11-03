@@ -87,6 +87,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
           planEndTime={planEndTime}
           updateTime={updateTime}
           isCompleted={isCompleted}
+          isArchived={isArchived}
           timeTooltip={timeTooltip}
           onGotoDetail={handleGotoMemoDetailPage}
         />
@@ -164,17 +165,37 @@ const TimeTooltip = ({ children, content }: { children: React.ReactElement; cont
   </Tooltip>
 );
 
-const PlanTimeDisplay: React.FC<{
+export const PlanTimeDisplay: React.FC<{
   planStartTime?: Date;
   planEndTime?: Date;
   updateTime?: Date;
   isCompleted?: boolean;
+  isArchived?: boolean;
   timeTooltip: TimeTooltipContent;
   onGotoDetail: () => void;
-}> = ({ planStartTime, planEndTime, updateTime, isCompleted, timeTooltip, onGotoDetail }) => {
+}> = ({ planStartTime, planEndTime, updateTime, isCompleted, isArchived, timeTooltip, onGotoDetail }) => {
   const t = useTranslate();
 
   if (!planStartTime || !planEndTime) return null;
+
+  // Archived memos are settled: show a muted "已归档" label with the archive date
+  // instead of any relative plan-time state, so archived items never keep nagging
+  // about being expired.
+  if (isArchived) {
+    const dateStr = updateTime ? updateTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
+    return (
+      <TimeTooltip content={timeTooltip}>
+        <button
+          type="button"
+          className="text-xs ml-2 whitespace-nowrap select-none cursor-pointer transition-colors text-left text-muted-foreground hover:text-foreground"
+          onClick={onGotoDetail}
+        >
+          {t("common.archived")}
+          {dateStr && <span className="ml-1 font-normal text-muted-foreground">{dateStr}</span>}
+        </button>
+      </TimeTooltip>
+    );
+  }
 
   // Completed memos: show green "已完成" with completion date.
   if (isCompleted) {
