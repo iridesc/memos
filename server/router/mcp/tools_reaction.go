@@ -89,7 +89,7 @@ func (s *MCPService) handleListReactions(ctx context.Context, req mcp.CallToolRe
 		}
 	}
 
-	return newToolResultJSON(results)
+	return newToolResultJSONList("reactions", results)
 }
 
 func (s *MCPService) handleUpsertReaction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

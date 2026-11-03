@@ -1,6 +1,11 @@
 package mcp
 
-import "github.com/mark3labs/mcp-go/mcp"
+import (
+	"encoding/json"
+
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/pkg/errors"
+)
 
 var mcpToolsByToolset = map[string]map[string]struct{}{
 	"memodo": stringSet(
@@ -95,6 +100,29 @@ func annotatedToolOptions(title string, description string, readOnly bool, destr
 
 func newToolResultJSON(v any) (*mcp.CallToolResult, error) {
 	return mcp.NewToolResultJSON(v)
+}
+
+// newToolResultJSONList returns a tool result for list-shaped payloads.
+//
+// The MCP spec requires structuredContent to be a JSON object; strict clients
+// reject a bare array with "Invalid MCP tools/call structured content". The
+// list is therefore wrapped under the given key inside structuredContent,
+// while the text fallback keeps the original bare-array JSON so that clients
+// reading only the unstructured content stay compatible.
+func newToolResultJSONList[T any](key string, items []T) (*mcp.CallToolResult, error) {
+	if items == nil {
+		items = []T{}
+	}
+	text, err := json.Marshal(items)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal list payload")
+	}
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			mcp.TextContent{Type: mcp.ContentTypeText, Text: string(text)},
+		},
+		StructuredContent: map[string]any{key: items},
+	}, nil
 }
 
 func newDeletedToolResult() (*mcp.CallToolResult, error) {

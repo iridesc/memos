@@ -69,5 +69,5 @@ func (s *MCPService) handleListTags(ctx context.Context, _ mcp.CallToolRequest) 
 		}
 	})
 
-	return newToolResultJSON(entries)
+	return newToolResultJSONList("tags", entries)
 }

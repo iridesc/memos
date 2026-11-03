@@ -119,7 +119,7 @@ func (s *MCPService) handleListMemoRelations(ctx context.Context, req mcp.CallTo
 		})
 	}
 
-	return newToolResultJSON(results)
+	return newToolResultJSONList("relations", results)
 }
 
 func (s *MCPService) handleCreateMemoRelation(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

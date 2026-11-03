@@ -76,6 +76,21 @@ func (s *testMCPService) createMemo(t *testing.T, creatorID int32, visibility st
 	return memo
 }
 
+func (s *testMCPService) createMemoWithTags(t *testing.T, creatorID int32, visibility store.Visibility, content string, tags []string) *store.Memo {
+	t.Helper()
+
+	memo, err := s.store.CreateMemo(context.Background(), &store.Memo{
+		UID:        shortuuid.New(),
+		CreatorID:  creatorID,
+		RowStatus:  store.Normal,
+		Visibility: visibility,
+		Content:    content,
+		Payload:    &storepb.MemoPayload{Tags: tags},
+	})
+	require.NoError(t, err)
+	return memo
+}
+
 func (s *testMCPService) archiveMemo(t *testing.T, memoID int32) {
 	t.Helper()
 
@@ -122,6 +137,17 @@ func firstText(t *testing.T, result *mcp.CallToolResult) string {
 	text, ok := result.Content[0].(mcp.TextContent)
 	require.True(t, ok)
 	return text.Text
+}
+
+// requireObjectStructuredContent asserts that a tool result carries a JSON object
+// in StructuredContent. The MCP spec requires an object there; strict clients
+// reject bare arrays with "Invalid MCP tools/call structured content".
+func requireObjectStructuredContent(t *testing.T, result *mcp.CallToolResult) map[string]any {
+	t.Helper()
+	require.NotNil(t, result.StructuredContent)
+	object, ok := result.StructuredContent.(map[string]any)
+	require.True(t, ok, "structuredContent must be a JSON object, got %T", result.StructuredContent)
+	return object
 }
 
 func initializeMCPHTTP(t *testing.T, e *echo.Echo, path string, headers map[string]string) string {
@@ -724,4 +750,141 @@ func TestMCPListMemosCompletedStateAndOrderBy(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(firstText(t, completedResult)), &payload))
 	require.Len(t, payload.Memos, 1)
 	require.Equal(t, "memos/"+early.UID, payload.Memos[0].Name)
+}
+
+func TestListToolsReturnObjectStructuredContent(t *testing.T) {
+	ts := newTestMCPService(t)
+	owner := ts.createUser(t, "owner")
+
+	source := ts.createMemoWithTags(t, owner.ID, store.Public, "source memo", []string{"project"})
+	target := ts.createMemoWithTags(t, owner.ID, store.Public, "target memo", []string{"project"})
+
+	_, err := ts.store.UpsertMemoRelation(context.Background(), &store.MemoRelation{
+		MemoID:        source.ID,
+		RelatedMemoID: target.ID,
+		Type:          store.MemoRelationReference,
+	})
+	require.NoError(t, err)
+
+	_, err = ts.store.UpsertReaction(context.Background(), &store.Reaction{
+		CreatorID:    owner.ID,
+		ContentID:    "memos/" + source.UID,
+		ReactionType: "THUMBSUP",
+	})
+	require.NoError(t, err)
+
+	ctx := withUser(context.Background(), owner.ID)
+
+	commentResult, err := ts.service.handleCreateMemoComment(ctx, toolRequest("create_memo_comment", map[string]any{
+		"name":    "memos/" + source.UID,
+		"content": "a comment",
+	}))
+	require.NoError(t, err)
+	require.False(t, commentResult.IsError)
+
+	cases := []struct {
+		tool string
+		key  string
+		call func() (*mcp.CallToolResult, error)
+	}{
+		{
+			tool: "list_tags",
+			key:  "tags",
+			call: func() (*mcp.CallToolResult, error) {
+				return ts.service.handleListTags(ctx, toolRequest("list_tags", nil))
+			},
+		},
+		{
+			tool: "list_reactions",
+			key:  "reactions",
+			call: func() (*mcp.CallToolResult, error) {
+				return ts.service.handleListReactions(ctx, toolRequest("list_reactions", map[string]any{
+					"name": "memos/" + source.UID,
+				}))
+			},
+		},
+		{
+			tool: "list_memo_relations",
+			key:  "relations",
+			call: func() (*mcp.CallToolResult, error) {
+				return ts.service.handleListMemoRelations(ctx, toolRequest("list_memo_relations", map[string]any{
+					"name": "memos/" + source.UID,
+				}))
+			},
+		},
+		{
+			tool: "list_memo_comments",
+			key:  "memos",
+			call: func() (*mcp.CallToolResult, error) {
+				return ts.service.handleListMemoComments(ctx, toolRequest("list_memo_comments", map[string]any{
+					"name": "memos/" + source.UID,
+				}))
+			},
+		},
+		{
+			tool: "search_memos",
+			key:  "memos",
+			call: func() (*mcp.CallToolResult, error) {
+				return ts.service.handleSearchMemos(ctx, toolRequest("search_memos", map[string]any{
+					"query": "source",
+				}))
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.tool, func(t *testing.T) {
+			result, err := c.call()
+			require.NoError(t, err)
+			require.False(t, result.IsError)
+
+			object := requireObjectStructuredContent(t, result)
+			value, ok := object[c.key]
+			require.True(t, ok, "structuredContent.%s must be present", c.key)
+			items := reflect.ValueOf(value)
+			require.Equal(t, reflect.Slice, items.Kind(), "structuredContent.%s must be an array", c.key)
+			require.NotEmpty(t, items.Len())
+
+			// The text fallback keeps the bare-array JSON for backward compatibility.
+			var list []any
+			require.NoError(t, json.Unmarshal([]byte(firstText(t, result)), &list))
+			require.Len(t, list, items.Len())
+		})
+	}
+}
+
+func TestMCPToolCallWireFormatUsesObjectStructuredContent(t *testing.T) {
+	ts := newTestMCPService(t)
+	e := echo.New()
+	ts.service.RegisterRoutes(e)
+
+	user := ts.createUser(t, "author")
+	ts.createMemoWithTags(t, user.ID, store.Public, "visible memo", []string{"project"})
+
+	sessionID := initializeMCPHTTP(t, e, "/mcp", nil)
+	response := callMCPHTTP(t, e, "/mcp", sessionID, nil, "tools/call", map[string]any{
+		"name":      "list_tags",
+		"arguments": map[string]any{},
+	})
+
+	result, ok := response["result"].(map[string]any)
+	require.True(t, ok, "missing result: %#v", response)
+
+	// The MCP spec requires structuredContent to be a JSON object; strict
+	// clients reject bare arrays with "Invalid MCP tools/call structured content".
+	structured, ok := result["structuredContent"].(map[string]any)
+	require.True(t, ok, "structuredContent must be a JSON object, got %#v", result["structuredContent"])
+	tags, ok := structured["tags"].([]any)
+	require.True(t, ok, "structuredContent.tags must be an array")
+	require.NotEmpty(t, tags)
+
+	// The unstructured fallback keeps the bare-array JSON.
+	rawContent, ok := result["content"].([]any)
+	require.True(t, ok)
+	require.NotEmpty(t, rawContent)
+	content, ok := rawContent[0].(map[string]any)
+	require.True(t, ok)
+	var list []any
+	require.NoError(t, json.Unmarshal([]byte(content["text"].(string)), &list))
+	require.Len(t, list, len(tags))
 }

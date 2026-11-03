@@ -73,6 +73,36 @@ For Streamable HTTP safety, requests with an `Origin` header must be same-origin
 
 ## Tools
 
+### Response Shape
+
+Every tool returns a JSON-RPC `result` whose `content` holds the payload as text.
+The `structuredContent` field repeats the same data as a JSON object, as required
+by the MCP spec — strict clients reject a bare array there with
+`Invalid MCP tools/call structured content`.
+
+List-shaped tools wrap their items under a named key:
+
+| Tool | `structuredContent` key |
+|---|---|
+| `list_memos` | `memos` (+ `has_more`) |
+| `list_attachments` | `attachments` (+ `has_more`) |
+| `list_tags` | `tags` |
+| `list_reactions` | `reactions` |
+| `list_memo_relations` | `relations` |
+| `list_memo_comments` | `memos` |
+| `search_memos` | `memos` |
+
+The unstructured text fallback of these list tools keeps the original bare-array
+JSON, so clients that only read `content` stay compatible:
+
+```jsonc
+// structuredContent
+{ "tags": [{ "tag": "project", "count": 3 }] }
+
+// content[0].text
+[{ "tag": "project", "count": 3 }]
+```
+
 ### Memo Tools
 
 | Tool | Description | Required params | Optional params |

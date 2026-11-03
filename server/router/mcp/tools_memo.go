@@ -683,7 +683,7 @@ func (s *MCPService) handleSearchMemos(ctx context.Context, req mcp.CallToolRequ
 		}
 		results[i] = result
 	}
-	return newToolResultJSON(results)
+	return newToolResultJSONList("memos", results)
 }
 
 func (s *MCPService) handleListMemoComments(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -714,7 +714,7 @@ func (s *MCPService) handleListMemoComments(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultError(fmt.Sprintf("failed to list relations: %v", err)), nil
 	}
 	if len(relations) == 0 {
-		return newToolResultJSON([]memoJSON{})
+		return newToolResultJSONList("memos", []memoJSON{})
 	}
 
 	commentIDs := make([]int32, len(relations))
@@ -747,7 +747,7 @@ func (s *MCPService) handleListMemoComments(ctx context.Context, req mcp.CallToo
 			results = append(results, result)
 		}
 	}
-	return newToolResultJSON(results)
+	return newToolResultJSONList("memos", results)
 }
 
 func (s *MCPService) handleCreateMemoComment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
