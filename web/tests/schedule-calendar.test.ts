@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
-import { addDays, calendarDays, calendarHeat, dateKey, groupScheduledMemos, moveCalendar } from "@/lib/schedule-calendar";
+import { addDays, calendarDays, calendarHeat, dateKey, groupScheduledMemos, moveCalendar, stripTagsFromPreview } from "@/lib/schedule-calendar";
 import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
 
 const date = (value: string) => new Date(`${value}T00:00:00`);
@@ -47,5 +47,23 @@ describe("scheduled day counts", () => {
   });
   it("uses stable workload bands", () => {
     expect([0, 1, 2, 3, 4, 6, 7, 100].map(calendarHeat)).toEqual([0, 1, 2, 2, 3, 3, 4, 4]);
+  });
+});
+
+describe("stripTagsFromPreview", () => {
+  it("removes leading tag lines and keeps the body", () => {
+    expect(stripTagsFromPreview("#项目/memodo\n\n整理标签渲染\n", ["项目/memodo"])).toBe("整理标签渲染");
+  });
+  it("leaves content untouched when the memo has no tags", () => {
+    expect(stripTagsFromPreview("正文 #123\n", [])).toBe("正文 #123");
+  });
+  it("does not strip unknown tag-like tokens", () => {
+    expect(stripTagsFromPreview("#项目/memodo 讨论 #123 的问题", ["项目/memodo"])).toBe(" 讨论 #123 的问题".trim());
+  });
+  it("strips the longest tag first so prefixes are not left behind", () => {
+    expect(stripTagsFromPreview("#项目 #项目/memodo\n正文\n", ["项目", "项目/memodo"])).toBe("正文");
+  });
+  it("collapses the blank lines left behind", () => {
+    expect(stripTagsFromPreview("#工作/周会\n\n\n#项目/memodo\n\n正文\n", ["工作/周会", "项目/memodo"])).toBe("正文");
   });
 });

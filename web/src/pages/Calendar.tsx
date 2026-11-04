@@ -2,15 +2,27 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { CalendarDaysIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import MemoTags from "@/components/MemoTags";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useInstance } from "@/contexts/InstanceContext";
+import { stringifyFilters } from "@/contexts/MemoFilterContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import useNavigateTo from "@/hooks/useNavigateTo";
 import { useScheduleCalendar } from "@/hooks/useScheduleCalendar";
 import i18n from "@/i18n";
-import { addDays, calendarDays, calendarHeat, dateKey, groupScheduledMemos, moveCalendar } from "@/lib/schedule-calendar";
+import {
+  addDays,
+  calendarDays,
+  calendarHeat,
+  dateKey,
+  groupScheduledMemos,
+  moveCalendar,
+  stripTagsFromPreview,
+} from "@/lib/schedule-calendar";
 import { cn } from "@/lib/utils";
 import Today from "@/pages/Today";
+import { Routes } from "@/router";
 import { State } from "@/types/proto/api/v1/common_pb";
 import { useTranslate } from "@/utils/i18n";
 
@@ -37,6 +49,7 @@ const Calendar = () => {
     view !== "today",
   );
   const groups = useMemo(() => groupScheduledMemos(data?.memos ?? [], days), [data, days]);
+  const navigateTo = useNavigateTo();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const selectedMemos = selectedDate ? (groups.get(dateKey(selectedDate)) ?? []) : [];
   const locale = i18n.language;
@@ -46,6 +59,10 @@ const Calendar = () => {
   const changePeriod = (date: Date) => {
     setSelectedDate(null);
     setParams({ view: "month", date: dateKey(date) });
+  };
+  const listMemosByTag = (tag: string) => {
+    setSelectedDate(null);
+    navigateTo(`${Routes.HOME}?filter=${stringifyFilters([{ factor: "tagSearch", value: tag }])}`);
   };
 
   return (
@@ -183,46 +200,50 @@ const Calendar = () => {
                 <p className="py-8 text-center text-sm text-muted-foreground">{t("schedule.empty")}</p>
               ) : (
                 <ul className="space-y-2">
-                  {selectedMemos.map((memo) => (
-                    <li key={memo.name}>
-                      <Link
-                        to={`/${memo.name}`}
-                        state={{ from: `/calendar?${params}` }}
-                        className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-primary"
-                      >
-                        <span
-                          className={cn(
-                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border",
-                            memo.state === State.COMPLETED && "border-primary bg-primary/10 text-primary",
-                          )}
-                        >
-                          {memo.state === State.COMPLETED && <CheckIcon className="size-3" />}
-                          <span className="sr-only">{memo.state === State.COMPLETED ? t("common.completed") : t("schedule.planned")}</span>
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm font-medium">
-                            {memo.content.trim() || t("schedule.untitled")}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {timestampDate(memo.planStartTime!).toLocaleString(locale, {
-                              month: "numeric",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            –{" "}
-                            {timestampDate(memo.planEndTime!).toLocaleString(locale, {
-                              month: "numeric",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
+                  {selectedMemos.map((memo) => {
+                    const preview = stripTagsFromPreview(memo.content, memo.tags);
+                    return (
+                      <li key={memo.name}>
+                        <div className="rounded-lg border transition-colors hover:bg-accent focus-within:outline-2 focus-within:outline-primary">
+                          <Link to={`/${memo.name}`} state={{ from: `/calendar?${params}` }} className="flex items-start gap-3 p-3">
+                            <span
+                              className={cn(
+                                "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border",
+                                memo.state === State.COMPLETED && "border-primary bg-primary/10 text-primary",
+                              )}
+                            >
+                              {memo.state === State.COMPLETED && <CheckIcon className="size-3" />}
+                              <span className="sr-only">
+                                {memo.state === State.COMPLETED ? t("common.completed") : t("schedule.planned")}
+                              </span>
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm font-medium">
+                                {preview || t("schedule.untitled")}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {timestampDate(memo.planStartTime!).toLocaleString(locale, {
+                                  month: "numeric",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                –{" "}
+                                {timestampDate(memo.planEndTime!).toLocaleString(locale, {
+                                  month: "numeric",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                            <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                          </Link>
+                          <MemoTags tags={memo.tags} className="px-3 pb-3" onTagClick={listMemosByTag} />
                         </div>
-                        <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                      </Link>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </DialogContent>

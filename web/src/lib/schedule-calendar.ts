@@ -44,6 +44,29 @@ export function groupScheduledMemos(memos: Memo[], days: Date[]): Map<string, Me
   return groups;
 }
 
+/**
+ * Removes the given tag tokens (`#tag`) from memo content so callers can render a
+ * plain-text preview without duplicating the tags that are displayed as chips.
+ *
+ * Only the tags reported by the server are removed, so plain text such as
+ * `#123` in the middle of a sentence is left untouched.
+ */
+export function stripTagsFromPreview(content: string, tags: readonly string[] | null | undefined): string {
+  if (!tags || tags.length === 0) {
+    return content.trim();
+  }
+  // Longest first so that "#a/b" is removed before "#a" can eat its prefix.
+  const ordered = [...tags].sort((a, b) => b.length - a.length);
+  let result = content;
+  for (const tag of ordered) {
+    result = result.split(`#${tag}`).join("");
+  }
+  return result
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function calendarHeat(count: number): number {
   return count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4;
 }
