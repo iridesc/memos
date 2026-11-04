@@ -102,14 +102,18 @@ One workflow: `.github/workflows/build-image.yml` builds and publishes the conta
 GitHub Container Registry. It authenticates with the built-in `GITHUB_TOKEN` (`packages: write`),
 so **no repository secrets are required**.
 
-| Trigger | Tags pushed |
-|---|---|
-| push `main` | `canary`, `main`, `sha-<short>` |
-| push tag `v*.*.*` | `<version>`, `<major>.<minor>`, `<major>`, `latest`, `sha-<short>` |
-| `workflow_dispatch` | `manual`, `sha-<short>` |
+Every run publishes exactly **one** tag — `<YYYYMMDD>-<short sha>` — with the date in
+Asia/Shanghai and an 8-character commit hash, matching the images already used on the NAS:
 
-Image address: `ghcr.io/<owner>/<repo>` (currently `ghcr.io/iridesc/memos`). Pulling a private
-package needs `docker login ghcr.io`; the NAS ships images by load instead of pull.
+```
+ghcr.io/<owner>/<repo>:20261104-6e56f271     # currently ghcr.io/iridesc/memos
+```
+
+No `canary` / `latest` / semver aliases are pushed. The same string is passed as the build
+`VERSION`, so `GetInstanceProfile` reports a version that maps 1:1 onto the image tag.
+
+Triggers: push `main`, push tag `v*.*.*`, or `workflow_dispatch` — all produce the same single tag.
+Pulling a private package needs `docker login ghcr.io`; the NAS ships images by load instead of pull.
 
 There is no test/lint workflow — run verification locally before pushing:
 

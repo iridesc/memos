@@ -1,10 +1,12 @@
 name: Build Image
 
-# Builds the container image and publishes it to GitHub Container Registry:
-#   ghcr.io/<owner>/<repo>:canary   (push to main)
-#   ghcr.io/<owner>/<repo>:<version> + latest   (push tag v*.*.*)
-#   ghcr.io/<owner>/<repo>:manual   (manual run)
-# Every run also pushes sha-<short> for traceability.
+# Builds the container image and publishes one tag per run to GitHub Container
+# Registry:  ghcr.io/<owner>/<repo>:<YYYYMMDD>-<short sha>
+# e.g. ghcr.io/iridesc/memos:20261104-6e56f271
+#
+# The tag is the only identifier pushed (no canary/latest/semver aliases), and it
+# is also injected as the build VERSION, so a running instance reports a version
+# that maps 1:1 onto the image tag.
 #
 # Auth uses the built-in GITHUB_TOKEN (packages: write), so no repository
 # secrets are required.
@@ -94,16 +96,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      # Reported by the running instance via GetInstanceProfile.version, so keep it
-      # semantic: "1.2.3" for tags, "canary" on main, "manual" otherwise.
-      - name: Compute version
-        id: version
-        run: |
-          case "$GITHUB_REF" in
-            refs/tags/v*) echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT" ;;
-            refs/heads/main) echo "value=canary" >> "$GITHUB_OUTPUT" ;;
-            *) echo "value=manual" >> "$GITHUB_OUTPUT" ;;
-          esac
+      # Single release tag, matching the naming already used on the NAS images:
+      #   <YYYYMMDD>-<short sha>   e.g. 20261104-6e56f271
+      # The date follows Asia/Shanghai so it reads like the local calendar day.
+      # The same value is injected as the build VERSION, so the running instance
+      # reports a version that maps 1:1 onto the image tag.
+      - name: Compute image tag
+        id: tag
+        run: echo "value=$(TZ=Asia/Shanghai date +%Y%m%d)-${GITHUB_SHA:0:8}" >> "$GITHUB_OUTPUT"
 
       - name: Extract metadata
         id: meta
@@ -111,17 +111,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=canary,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=manual,enable=${{ github.event_name == 'workflow_dispatch' }}
-            type=sha,prefix=sha-,format=short
+            type=raw,value=${{ steps.tag.outputs.value }}
           labels: |
             org.opencontainers.image.title=memodo
             org.opencontainers.image.description=Self-hosted memo and todo management tool
+            org.opencontainers.image.version=${{ steps.tag.outputs.value }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -133,7 +128,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ steps.version.outputs.value }}
+            VERSION=${{ steps.tag.outputs.value }}
             COMMIT=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -147,5 +142,5 @@ jobs:
             echo "${{ steps.meta.outputs.tags }}"
             echo '```'
             echo
-            echo "Version: \`${{ steps.version.outputs.value }}\`  Commit: \`${{ github.sha }}\`"
+            echo "Version: \`${{ steps.tag.outputs.value }}\`  Commit: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
