@@ -7,7 +7,9 @@ web/dist
 # Build artifacts
 build/
 bin/
-memodo
+# Root binary only: a bare "memodo" is a basename pattern and would also hide
+# the cmd/memodo package directory.
+/memodo
 
 .DS_Store
 
