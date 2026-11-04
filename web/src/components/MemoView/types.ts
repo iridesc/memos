@@ -16,6 +16,7 @@ export interface MemoHeaderProps {
   showCreator?: boolean;
   showVisibility?: boolean;
   showPinned?: boolean;
+  compact?: boolean;
 }
 
 export interface MemoBodyProps {

@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useUpdateMemo } from "@/hooks/useMemoQueries";
 import useNavigateTo from "@/hooks/useNavigateTo";
 import i18n from "@/i18n";
-import { formatRelativePlanTime } from "@/lib/time";
+import { describePlanWhen, formatRelativePlanTime, type PlanWhen, type TimeWithUnit } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
 import { Visibility } from "@/types/proto/api/v1/memo_service_pb";
@@ -173,7 +173,9 @@ export const PlanTimeDisplay: React.FC<{
   isArchived?: boolean;
   timeTooltip: TimeTooltipContent;
   onGotoDetail: () => void;
-}> = ({ planStartTime, planEndTime, updateTime, isCompleted, isArchived, timeTooltip, onGotoDetail }) => {
+  /** Lists use calendar-day phrasing (明天 / 2周后); detail pages (compact=false) show the absolute range. */
+  compact?: boolean;
+}> = ({ planStartTime, planEndTime, updateTime, isCompleted, isArchived, timeTooltip, onGotoDetail, compact = true }) => {
   const t = useTranslate();
 
   if (!planStartTime || !planEndTime) return null;
@@ -219,13 +221,30 @@ export const PlanTimeDisplay: React.FC<{
 
   let isExpired = false;
 
+  const formatRange = (start: Date, end: Date) => {
+    const fmtDay = (d: Date) => d.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" });
+    const fmtClock = (d: Date) => d.toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit" });
+    const sameDay = start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth() && start.getDate() === end.getDate();
+    return sameDay
+      ? `${fmtDay(start)} ${fmtClock(start)} – ${fmtClock(end)}`
+      : `${fmtDay(start)} ${fmtClock(start)} – ${fmtDay(end)} ${fmtClock(end)}`;
+  };
+
   switch (result.state) {
     case "expired":
       isExpired = true;
-      displayText = t("common.plan-time.expired");
+      if (!compact) {
+        displayText = t("common.plan-time.expired-absolute", { range: formatRange(planStartTime, planEndTime) });
+      } else if ((result.expiredDays ?? 0) > 0) {
+        displayText = t("common.plan-time.expired-days", { count: result.expiredDays });
+      } else {
+        displayText = t("common.plan-time.expired");
+      }
       break;
     case "in-progress":
-      if (result.isEndImminent) {
+      if (!compact) {
+        displayText = t("common.plan-time.in-progress-absolute", { range: formatRange(planStartTime, planEndTime) });
+      } else if (result.isEndImminent) {
         displayText = t("common.plan-time.ends-imminent");
       } else if (result.remaining) {
         const timeStr = formatUnit(result.remaining, t);
@@ -236,18 +255,16 @@ export const PlanTimeDisplay: React.FC<{
       break;
     case "not-started":
     default:
-      if (result.isStartImminent && result.duration) {
+      if (!compact) {
+        displayText = formatRange(planStartTime, planEndTime);
+      } else if (result.isStartImminent && result.duration) {
         const durStr = formatUnit(result.duration, t);
         displayText = t("common.plan-time.starts-imminent", { duration: durStr });
-      } else if (result.startOffset && result.duration) {
-        const startStr = formatUnit(result.startOffset, t);
-        const durStr = formatUnit(result.duration, t);
-        displayText = t("common.plan-time.not-started", { time: startStr, duration: durStr });
-      } else if (result.startOffset) {
-        const startStr = formatUnit(result.startOffset, t);
-        displayText = t("common.plan-time.not-started", { time: startStr, duration: "0m" });
       } else {
-        displayText = "";
+        const when = describePlanWhen(result.dayOffset ?? 0);
+        const whenStr = planWhenPhrase(when, result.startOffset, t);
+        const durStr = result.duration ? formatUnit(result.duration, t) : "0m";
+        displayText = t("common.plan-time.not-started", { when: whenStr, duration: durStr });
       }
       break;
   }
@@ -272,6 +289,19 @@ export const PlanTimeDisplay: React.FC<{
 function formatUnit(twu: { value: number; unit: string }, t: ReturnType<typeof useTranslate>): string {
   const key = `common.plan-time.unit-${twu.unit}` as Parameters<typeof t>[0];
   return t(key, { count: twu.value });
+}
+
+function planWhenPhrase(when: PlanWhen, startOffset: TimeWithUnit | undefined, t: ReturnType<typeof useTranslate>): string {
+  switch (when.kind) {
+    case "today":
+      return t("common.plan-time.when-hours", { time: startOffset ? formatUnit(startOffset, t) : "" });
+    case "tomorrow":
+      return t("common.plan-time.when-tomorrow");
+    case "day-after":
+      return t("common.plan-time.when-day-after");
+    default:
+      return t(`common.plan-time.when-${when.kind}` as Parameters<typeof t>[0], { count: when.count });
+  }
 }
 
 export default MemoHeader;

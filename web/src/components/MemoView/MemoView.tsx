@@ -121,7 +121,7 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
       ref={cardRef}
       tabIndex={readonly ? -1 : 0}
     >
-      <MemoHeader showCreator={showCreator} showVisibility={showVisibility} showPinned={showPinned} />
+      <MemoHeader showCreator={showCreator} showVisibility={showVisibility} showPinned={showPinned} compact={compact !== false} />
 
       <MemoBody compact={compact} />
 
