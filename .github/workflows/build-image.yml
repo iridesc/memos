@@ -1,0 +1,151 @@
+name: Build Image
+
+# Builds the container image and publishes it to GitHub Container Registry:
+#   ghcr.io/<owner>/<repo>:canary   (push to main)
+#   ghcr.io/<owner>/<repo>:<version> + latest   (push tag v*.*.*)
+#   ghcr.io/<owner>/<repo>:manual   (manual run)
+# Every run also pushes sha-<short> for traceability.
+#
+# Auth uses the built-in GITHUB_TOKEN (packages: write), so no repository
+# secrets are required.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "11.0.1"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      # server/router/frontend embeds dist/* via go:embed, so the assets must
+      # exist before the Go build runs inside the Docker build.
+      - name: Build frontend
+        working-directory: web
+        run: pnpm release
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-dist
+          path: server/router/frontend/dist
+          retention-days: 1
+          if-no-files-found: error
+
+  image:
+    name: Build and push image
+    needs: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: server/router/frontend/dist
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Reported by the running instance via GetInstanceProfile.version, so keep it
+      # semantic: "1.2.3" for tags, "canary" on main, "manual" otherwise.
+      - name: Compute version
+        id: version
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v*) echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT" ;;
+            refs/heads/main) echo "value=canary" >> "$GITHUB_OUTPUT" ;;
+            *) echo "value=manual" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=canary,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=manual,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=memodo
+            org.opencontainers.image.description=Self-hosted memo and todo management tool
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./scripts/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.value }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image published"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo
+            echo "Version: \`${{ steps.version.outputs.value }}\`  Commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

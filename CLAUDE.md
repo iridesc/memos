@@ -98,15 +98,29 @@ web/src/
 
 ## CI
 
-This fork intentionally has **no GitHub Actions workflows**. All build, test and deploy steps are
-run locally and shipped to the NAS by hand (see the deployment procedure in the commit history).
-Verification before a deploy:
+One workflow: `.github/workflows/build-image.yml` builds and publishes the container image to
+GitHub Container Registry. It authenticates with the built-in `GITHUB_TOKEN` (`packages: write`),
+so **no repository secrets are required**.
+
+| Trigger | Tags pushed |
+|---|---|
+| push `main` | `canary`, `main`, `sha-<short>` |
+| push tag `v*.*.*` | `<version>`, `<major>.<minor>`, `<major>`, `latest`, `sha-<short>` |
+| `workflow_dispatch` | `manual`, `sha-<short>` |
+
+Image address: `ghcr.io/<owner>/<repo>` (currently `ghcr.io/iridesc/memos`). Pulling a private
+package needs `docker login ghcr.io`; the NAS ships images by load instead of pull.
+
+There is no test/lint workflow — run verification locally before pushing:
 
 ```bash
 cd web && pnpm lint && pnpm test && pnpm release && cd ..
 go test ./...
 ```
 
-**Docker:** Multi-stage (`scripts/Dockerfile`), Alpine 3.21, non-root user, port 5230, multi-arch (amd64/arm64/arm/v7)
+The workflow runs `pnpm release` before the Docker build because `server/router/frontend` embeds
+`dist/*` via `go:embed`.
+
+**Docker:** Multi-stage (`scripts/Dockerfile`), Alpine 3.21, non-root user, port 5230, multi-arch (amd64/arm64)
 - **Container Build:** `podman build --platform linux/amd64 -f scripts/Dockerfile -t docker.io/irid/memodo:latest .`
 - **Container Push:** `podman push docker.io/irid/memodo:latest`

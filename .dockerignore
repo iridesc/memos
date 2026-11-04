@@ -11,3 +11,11 @@ memodo
 .dockerignore
 docs/
 .DS_Store
+
+# Local runtime data / artifacts must never enter the image
+memos_prod.db*
+memodo-data/
+.codegraph/
+web/coverage/
+.vscode/
+.worktrees/
