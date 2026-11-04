@@ -96,13 +96,17 @@ web/src/
 - **Proto changes:** Run `buf generate`. Generated code: `proto/gen/` and `web/src/types/proto/`.
 - **Public endpoints:** Add to `server/router/api/v1/acl_config.go`.
 
-## CI/CD
+## CI
 
-- **backend-tests.yml:** Go 1.26.2, `go mod tidy -go=1.26.2`, golangci-lint v2.11.3, tests parallelized by group (store, server, internal, other)
-- **build-canary-image.yml:** Builds frontend with `pnpm release`, then publishes canary multi-arch container images for linux/amd64 and linux/arm64
-- **frontend-tests.yml:** Node 24, pnpm 11, lint + build
-- **proto-linter.yml:** buf lint + format check
-- **release.yml:** On version tags, builds frontend once, packages binaries for Linux/macOS/Windows, and publishes release container images/tags
-- **Docker:** Multi-stage (`scripts/Dockerfile`), Alpine 3.21, non-root user, port 5230, multi-arch (amd64/arm64/arm/v7)
+This fork intentionally has **no GitHub Actions workflows**. All build, test and deploy steps are
+run locally and shipped to the NAS by hand (see the deployment procedure in the commit history).
+Verification before a deploy:
+
+```bash
+cd web && pnpm lint && pnpm test && pnpm release && cd ..
+go test ./...
+```
+
+**Docker:** Multi-stage (`scripts/Dockerfile`), Alpine 3.21, non-root user, port 5230, multi-arch (amd64/arm64/arm/v7)
 - **Container Build:** `podman build --platform linux/amd64 -f scripts/Dockerfile -t docker.io/irid/memodo:latest .`
 - **Container Push:** `podman push docker.io/irid/memodo:latest`
