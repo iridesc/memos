@@ -194,6 +194,12 @@ Authorization: Bearer <PAT 或 JWT 会话 token>
 | `has_incomplete_tasks` | bool | 含未完成待办 |
 | `has_link` | bool | 含链接 |
 | `has_code` | bool | 含代码块 |
+| `state` | string | `NORMAL` / `COMPLETED` / `ARCHIVED` |
+| `has_plan` | bool | 是否设置了计划时间（`plan_end_ts` 非空） |
+| `plan_start_ts` | number | 计划开始时间（Unix 秒） |
+| `plan_end_ts` | number | 计划截止时间（Unix 秒） |
+| `completed_ts` | number | 完成时间（Unix 秒，服务端维护） |
+| `archived_ts` | number | 归档时间（Unix 秒，服务端维护） |
 
 支持的调用与宏：`contains()`、`startsWith()`、`exists()`、`all()`、`filter()`。
 
@@ -206,6 +212,9 @@ tags.exists(t, t.startsWith("<一级>/"))
 has_incomplete_tasks == true
 created_ts > 1767225600
 creator == "<username>" && pinned == true
+state == "COMPLETED" && completed_ts > 1793950000
+state == "NORMAL" && has_plan == false
+state == "NORMAL" && plan_end_ts < 1793960636
 ```
 
 `&&`、`||`、`!` 和比较运算可用；跨字段的复杂嵌套建议拆成多次查询后再在本地合并。

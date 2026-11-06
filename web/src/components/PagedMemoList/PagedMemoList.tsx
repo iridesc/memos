@@ -38,6 +38,14 @@ interface Props {
   completedMemoFilter?: (memo: Memo) => boolean;
   /** When true, insert visual group separators between smart-sort tiers (expired / planned / unscheduled). */
   smartGroups?: boolean;
+  /**
+   * Whether to split COMPLETED memos into their own collapsible section.
+   * Defaults to true. Pass false when the caller already scopes the list by state
+   * (e.g. the home page tabs), otherwise completed memos vanish from the list.
+   */
+  splitCompleted?: boolean;
+  /** Message shown when the list has no data. */
+  emptyMessage?: string;
 }
 
 const COMPLETED_COLLAPSED_KEY = "memos-completed-collapsed";
@@ -142,7 +150,7 @@ const PagedMemoList = (props: Props) => {
   // Split into active (NORMAL) and completed (COMPLETED) groups.
   // Only split when listState is NORMAL (default) — when explicitly filtering
   // for COMPLETED or ARCHIVED, don't split.
-  const shouldSplit = listState === State.NORMAL;
+  const shouldSplit = (props.splitCompleted ?? true) && listState === State.NORMAL;
   const activeMemos = useMemo(() => {
     const items = shouldSplit ? sortedMemoList.filter((m) => m.state !== State.COMPLETED) : sortedMemoList;
     if (!optimisticOrder) return items;
@@ -353,7 +361,7 @@ const PagedMemoList = (props: Props) => {
               {!isFetchingNextPage && (
                 <>
                   {!hasNextPage && sortedMemoList.length === 0 ? (
-                    <Placeholder variant="empty" message={t("message.no-data")} />
+                    <Placeholder variant="empty" message={props.emptyMessage || t("message.no-data")} />
                   ) : (
                     <div className="w-full opacity-70 flex flex-row justify-center items-center my-4">
                       <BackToTop />

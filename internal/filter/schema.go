@@ -37,6 +37,10 @@ const (
 	FieldKindJSONBool     FieldKind = "json_bool"
 	FieldKindJSONList     FieldKind = "json_list"
 	FieldKindVirtualAlias FieldKind = "virtual_alias"
+	// FieldKindDerivedBool is a boolean derived from a SQL predicate over one
+	// column (e.g. has_plan → plan_end_ts IS NOT NULL). The predicate lives in
+	// Expressions so each dialect can override it.
+	FieldKindDerivedBool FieldKind = "derived_bool"
 )
 
 // Column identifies the backing table column.
@@ -279,6 +283,32 @@ func NewSchema() Schema {
 				DialectSQLite:   "%s",
 			},
 		},
+		"state": {
+			Name:        "state",
+			Kind:        FieldKindScalar,
+			Type:        FieldTypeString,
+			Column:      Column{Table: "memo", Name: "row_status"},
+			Expressions: map[DialectName]string{},
+			AllowedComparisonOps: map[ComparisonOperator]bool{
+				CompareEq:  true,
+				CompareNeq: true,
+			},
+		},
+		"has_plan": {
+			Name:   "has_plan",
+			Kind:   FieldKindDerivedBool,
+			Type:   FieldTypeBool,
+			Column: Column{Table: "memo", Name: "plan_end_ts"},
+			Expressions: map[DialectName]string{
+				DialectPostgres: "%s IS NOT NULL",
+				DialectMySQL:    "%s IS NOT NULL",
+				DialectSQLite:   "%s IS NOT NULL",
+			},
+			AllowedComparisonOps: map[ComparisonOperator]bool{
+				CompareEq:  true,
+				CompareNeq: true,
+			},
+		},
 	}
 
 	envOptions := []cel.EnvOption{
@@ -299,6 +329,8 @@ func NewSchema() Schema {
 		cel.Variable("plan_end_ts", cel.IntType),
 		cel.Variable("completed_ts", cel.IntType),
 		cel.Variable("archived_ts", cel.IntType),
+		cel.Variable("state", cel.StringType),
+		cel.Variable("has_plan", cel.BoolType),
 		nowFunction,
 	}
 

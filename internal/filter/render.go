@@ -135,6 +135,10 @@ func (r *renderer) renderFieldPredicate(cond *FieldPredicateCondition) (renderRe
 		return renderResult{
 			sql: fmt.Sprintf("%s IS TRUE", column),
 		}, nil
+	case FieldKindDerivedBool:
+		return renderResult{
+			sql: fmt.Sprintf("(%s)", field.columnExpr(r.dialect)),
+		}, nil
 	case FieldKindJSONBool:
 		sql, err := r.jsonBoolPredicate(field)
 		if err != nil {
@@ -156,6 +160,8 @@ func (r *renderer) renderComparison(cond *ComparisonCondition) (renderResult, er
 		switch field.Kind {
 		case FieldKindBoolColumn:
 			return r.renderBoolColumnComparison(field, cond.Operator, cond.Right)
+		case FieldKindDerivedBool:
+			return r.renderDerivedBoolComparison(field, cond.Operator, cond.Right)
 		case FieldKindJSONBool:
 			return r.renderJSONBoolComparison(field, cond.Operator, cond.Right)
 		case FieldKindScalar:
@@ -253,6 +259,21 @@ func (r *renderer) renderBoolColumnComparison(field Field, op ComparisonOperator
 	return renderResult{
 		sql: fmt.Sprintf("%s %s %s", column, sqlOperator(op), placeholder),
 	}, nil
+}
+
+// renderDerivedBoolComparison renders a derived boolean predicate compared
+// against a literal, folding the comparison into the predicate itself
+// (has_plan == false → NOT (plan_end_ts IS NOT NULL)).
+func (r *renderer) renderDerivedBoolComparison(field Field, op ComparisonOperator, right ValueExpr) (renderResult, error) {
+	value, err := expectBool(right)
+	if err != nil {
+		return renderResult{}, err
+	}
+	expr := fmt.Sprintf("(%s)", field.columnExpr(r.dialect))
+	if (op == CompareEq) != value {
+		return renderResult{sql: fmt.Sprintf("NOT %s", expr)}, nil
+	}
+	return renderResult{sql: expr}, nil
 }
 
 func (r *renderer) renderJSONBoolComparison(field Field, op ComparisonOperator, right ValueExpr) (renderResult, error) {
