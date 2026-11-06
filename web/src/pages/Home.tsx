@@ -35,7 +35,7 @@ const Home = () => {
         orderBy={orderBy}
         filter={filter}
         enabled={isInitialized}
-        showMemoEditor={tab === "unscheduled"}
+        showMemoEditor={tab === "all" || tab === "unscheduled"}
         splitCompleted={false}
         emptyMessage={t(`message.tab-empty-${tab}`)}
       />

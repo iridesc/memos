@@ -11,9 +11,9 @@ import (
 	"github.com/usememos/memodo/store"
 )
 
-// TestMemoHomeTabFilters exercises the filter expressions used by the four
-// home-page tabs (unscheduled / expired / planned / completed) against a real
-// SQLite store, so the CEL → SQL rendering is verified end to end.
+// TestMemoHomeTabFilters exercises the filter expressions used by the
+// home-page tabs (all / unscheduled / expired / planned / completed) against a
+// real SQLite store, so the CEL → SQL rendering is verified end to end.
 func TestMemoHomeTabFilters(t *testing.T) {
 	ctx := context.Background()
 	ts := NewTestService(t)
@@ -69,6 +69,7 @@ func TestMemoHomeTabFilters(t *testing.T) {
 	require.ElementsMatch(t, []string{"expired"}, listUIDs(fmt.Sprintf(`state == "NORMAL" && plan_end_ts < %d`, now)))
 	require.ElementsMatch(t, []string{"planned"}, listUIDs(fmt.Sprintf(`state == "NORMAL" && plan_end_ts >= %d`, now)))
 	require.ElementsMatch(t, []string{"completed"}, listUIDs(`state == "COMPLETED"`))
+	require.ElementsMatch(t, []string{"unscheduled", "expired", "planned", "completed"}, listUIDs(`state != "ARCHIVED"`))
 }
 
 // TestMemoHomeTabHasPlanComparison ensures the derived boolean works in both

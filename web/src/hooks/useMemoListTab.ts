@@ -1,12 +1,12 @@
 import { useCallback, useState } from "react";
 
 /** Top-level tabs of the home memo list. Each tab maps to a server-side filter. */
-export type MemoListTab = "unscheduled" | "expired" | "planned" | "completed";
+export type MemoListTab = "all" | "unscheduled" | "expired" | "planned" | "completed";
 
 /** Secondary ordering basis for the "planned" tab. */
 export type PlannedTabOrder = "plan_start_time" | "plan_end_time";
 
-export const MEMO_LIST_TABS: MemoListTab[] = ["unscheduled", "expired", "planned", "completed"];
+export const MEMO_LIST_TABS: MemoListTab[] = ["all", "unscheduled", "expired", "planned", "completed"];
 
 const TAB_STORAGE_KEY = "memos-home-tab";
 
@@ -29,6 +29,11 @@ export const buildMemoListTabQuery = (
   plannedOrder: PlannedTabOrder = "plan_start_time",
 ): MemoListTabQuery => {
   switch (tab) {
+    case "all":
+      return {
+        filter: 'state != "ARCHIVED"',
+        orderBy: "pinned desc, create_time desc",
+      };
     case "unscheduled":
       return {
         filter: 'state == "NORMAL" && has_plan == false',
@@ -73,7 +78,7 @@ const readStoredTab = (): MemoListTab => {
   } catch {
     // ignore storage errors
   }
-  return "unscheduled";
+  return "all";
 };
 
 export interface UseMemoListTabResult {

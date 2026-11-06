@@ -4,6 +4,13 @@ import { buildMemoListTabQuery, combineFilters } from "@/hooks/useMemoListTab";
 const NOW = 1793960636;
 
 describe("buildMemoListTabQuery", () => {
+  it("scopes all to every non-archived memo, newest created first", () => {
+    expect(buildMemoListTabQuery("all", NOW)).toEqual({
+      filter: 'state != "ARCHIVED"',
+      orderBy: "pinned desc, create_time desc",
+    });
+  });
+
   it("scopes unscheduled to NORMAL memos without plan time, newest edit first", () => {
     expect(buildMemoListTabQuery("unscheduled", NOW)).toEqual({
       filter: 'state == "NORMAL" && has_plan == false',
@@ -38,6 +45,7 @@ describe("buildMemoListTabQuery", () => {
     for (const tab of ["unscheduled", "expired", "planned", "completed"] as const) {
       expect(buildMemoListTabQuery(tab, NOW).filter).toContain("state ==");
     }
+    expect(buildMemoListTabQuery("all", NOW).filter).toContain("state !=");
   });
 });
 

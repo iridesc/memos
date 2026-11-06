@@ -206,6 +206,7 @@
     "sort-by-plan-start": "Start time",
     "sort-by-plan-end": "Due time",
     "tab-list-type": "List type",
+    "tab-all": "All",
     "tab-unscheduled": "Unscheduled",
     "tab-expired": "Expired",
     "tab-planned": "Scheduled",
@@ -394,6 +395,7 @@
   },
   "message": {
     "archived-successfully": "Archived successfully",
+    "tab-empty-all": "Nothing here yet.",
     "tab-empty-unscheduled": "Nothing unscheduled.",
     "tab-empty-expired": "Nothing is overdue.",
     "tab-empty-planned": "Nothing scheduled.",
