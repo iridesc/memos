@@ -181,6 +181,23 @@ claude mcp add --scope user --transport http memos http://localhost:5230/mcp \
   --header "Authorization: Bearer <your-PAT>"
 ```
 
+## Agent Skills
+
+The repository ships an agent skill under `skills/` that documents how to use these tools correctly (tag conventions, plan-time constraints, `update_memo`'s replace semantics, and a read-only tag audit script). It is embedded into the binary and served by the instance, so a client can download it before it has a token:
+
+| Endpoint | Content |
+|---|---|
+| `GET /skills/memodo.zip` | Whole skill directory, top-level folder `memodo/` |
+| `GET /skills/memodo/SKILL.md` | Skill entrypoint |
+| `GET /skills/memodo/references/…` | Individual reference files |
+
+```bash
+curl -fLO https://<instance-host>/skills/memodo.zip
+unzip memodo-skill.zip -d ~/.claude/skills
+```
+
+The archive is byte-stable across requests (fixed entry timestamps) and the routes are public, since skills contain instructions only — no user data. Source lives in `skills/memodo/`; the Go wrapper is `skills/embed.go` and the HTTP routes are in `server/router/skills`.
+
 ## Package Structure
 
 | File | Responsibility |

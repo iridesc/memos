@@ -22,8 +22,9 @@ import (
 	"github.com/usememos/memodo/server/router/frontend"
 	mcprouter "github.com/usememos/memodo/server/router/mcp"
 	"github.com/usememos/memodo/server/router/rss"
-	"github.com/usememos/memodo/server/runner/s3presign"
+	skillsrouter "github.com/usememos/memodo/server/router/skills"
 	"github.com/usememos/memodo/server/runner/autoarchive"
+	"github.com/usememos/memodo/server/runner/s3presign"
 	"github.com/usememos/memodo/store"
 )
 
@@ -92,6 +93,9 @@ func NewServer(ctx context.Context, profile *profile.Profile, store *store.Store
 	// Register MCP server.
 	mcpService := mcprouter.NewMCPService(s.Profile, s.Store, s.Secret, apiV1Service)
 	mcpService.RegisterRoutes(echoServer)
+
+	// Register the bundled agent skills for download.
+	skillsrouter.NewService().RegisterRoutes(echoServer)
 
 	return s, nil
 }
