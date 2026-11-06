@@ -154,8 +154,8 @@ const PagedMemoList = (props: Props) => {
     return sortedMemoList
       .filter((m) => m.state === State.COMPLETED && (props.completedMemoFilter?.(m) ?? true))
       .sort((a, b) => {
-        const aTime = a.updateTime ? timestampDate(a.updateTime).getTime() : 0;
-        const bTime = b.updateTime ? timestampDate(b.updateTime).getTime() : 0;
+        const aTime = a.completedTime ? timestampDate(a.completedTime).getTime() : 0;
+        const bTime = b.completedTime ? timestampDate(b.completedTime).getTime() : 0;
         return bTime - aTime; // Most recently completed first
       });
   }, [sortedMemoList, shouldSplit, props.completedMemoFilter]);

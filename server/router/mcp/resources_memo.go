@@ -78,6 +78,12 @@ func formatMemoMarkdown(j memoJSON) string {
 	}
 	fmt.Fprintf(&sb, "create_time: %d\n", j.CreateTime)
 	fmt.Fprintf(&sb, "update_time: %d\n", j.UpdateTime)
+	if j.CompletedTime != nil {
+		fmt.Fprintf(&sb, "completed_time: %d\n", *j.CompletedTime)
+	}
+	if j.ArchivedTime != nil {
+		fmt.Fprintf(&sb, "archived_time: %d\n", *j.ArchivedTime)
+	}
 	if j.Parent != "" {
 		fmt.Fprintf(&sb, "parent: %s\n", j.Parent)
 	}

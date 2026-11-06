@@ -130,6 +130,8 @@
     "plan-from": "From",
     "plan-until": "Until",
     "completed": "Completed",
+    "completed-at": "Completed at",
+    "archived-at": "Archived at",
     "completed-count": "Completed ({{count}})",
     "mark-completed": "Mark as completed",
     "mark-uncompleted": "Mark as uncompleted",

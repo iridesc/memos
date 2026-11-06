@@ -96,6 +96,8 @@
     "plan-from": "从",
     "plan-until": "截止于",
     "completed": "已完成",
+    "completed-at": "完成时间",
+    "archived-at": "归档时间",
     "completed-count": "已完成 ({{count}})",
     "mark-completed": "标记完成",
     "mark-uncompleted": "取消完成",

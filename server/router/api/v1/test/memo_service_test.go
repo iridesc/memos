@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -267,12 +268,13 @@ func TestListMemosTimeOrderBy(t *testing.T) {
 	require.NoError(t, err)
 	userCtx := ts.CreateUserContext(ctx, user.ID)
 
+	// update_time is server-managed, so craft the timestamps through the store layer
+	// to exercise the update_time ordering independently of the write path.
 	memoEarlyCreateLateUpdate, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
 		Memo: &apiv1.Memo{
 			Content:    "early create late update",
 			Visibility: apiv1.Visibility_PRIVATE,
 			CreateTime: timestamppb.New(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UpdateTime: timestamppb.New(time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)),
 		},
 	})
 	require.NoError(t, err)
@@ -281,7 +283,6 @@ func TestListMemosTimeOrderBy(t *testing.T) {
 			Content:    "middle create early update",
 			Visibility: apiv1.Visibility_PRIVATE,
 			CreateTime: timestamppb.New(time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)),
-			UpdateTime: timestamppb.New(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
 		},
 	})
 	require.NoError(t, err)
@@ -290,10 +291,22 @@ func TestListMemosTimeOrderBy(t *testing.T) {
 			Content:    "late create middle update",
 			Visibility: apiv1.Visibility_PRIVATE,
 			CreateTime: timestamppb.New(time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC)),
-			UpdateTime: timestamppb.New(time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)),
 		},
 	})
 	require.NoError(t, err)
+
+	for name, updatedTs := range map[string]int64{
+		memoEarlyCreateLateUpdate.Name:   time.Date(2020, 1, 3, 0, 0, 0, 0, time.UTC).Unix(),
+		memoMiddleCreateEarlyUpdate.Name: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		memoLateCreateMiddleUpdate.Name:  time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC).Unix(),
+	} {
+		memoUID := strings.TrimPrefix(name, "memos/")
+		stored, err := ts.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+		require.NoError(t, err)
+		require.NotNil(t, stored)
+		ts2 := updatedTs
+		require.NoError(t, ts.Store.UpdateMemo(ctx, &store.UpdateMemo{ID: stored.ID, UpdatedTs: &ts2}))
+	}
 
 	tests := []struct {
 		name      string
@@ -668,7 +681,7 @@ func TestCreateMemoWithCustomTimestamps(t *testing.T) {
 	require.NotNil(t, memoWithCreateTime)
 	require.Equal(t, customCreateTime.Unix(), memoWithCreateTime.CreateTime.AsTime().Unix(), "create_time should match the custom timestamp")
 
-	// Test 2: Create a memo with custom update_time
+	// Test 2: update_time is server-managed (OUTPUT_ONLY): a client-supplied value is ignored
 	memoWithUpdateTime, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
 		Memo: &apiv1.Memo{
 			Content:    "This memo has a custom update time",
@@ -678,9 +691,10 @@ func TestCreateMemoWithCustomTimestamps(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, memoWithUpdateTime)
-	require.Equal(t, customUpdateTime.Unix(), memoWithUpdateTime.UpdateTime.AsTime().Unix(), "update_time should match the custom timestamp")
+	require.NotEqual(t, customUpdateTime.Unix(), memoWithUpdateTime.UpdateTime.AsTime().Unix(), "update_time must ignore client input")
+	require.True(t, time.Now().Unix()-memoWithUpdateTime.UpdateTime.AsTime().Unix() < 5, "update_time should be now")
 
-	// Test 3: Create a memo with all custom timestamps
+	// Test 3: create_time still honor the request while update_time is server-managed
 	memoWithAllTimestamps, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
 		Memo: &apiv1.Memo{
 			Content:    "This memo has all custom timestamps",
@@ -692,7 +706,8 @@ func TestCreateMemoWithCustomTimestamps(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, memoWithAllTimestamps)
 	require.Equal(t, customCreateTime.Unix(), memoWithAllTimestamps.CreateTime.AsTime().Unix(), "create_time should match the custom timestamp")
-	require.Equal(t, customUpdateTime.Unix(), memoWithAllTimestamps.UpdateTime.AsTime().Unix(), "update_time should match the custom timestamp")
+	require.NotEqual(t, customUpdateTime.Unix(), memoWithAllTimestamps.UpdateTime.AsTime().Unix(), "update_time must ignore client input")
+	require.True(t, time.Now().Unix()-memoWithAllTimestamps.UpdateTime.AsTime().Unix() < 5, "update_time should be now")
 
 	// Test 4: Create a comment (memo relation) with custom timestamps
 	parentMemo, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
@@ -729,4 +744,122 @@ func TestCreateMemoWithCustomTimestamps(t *testing.T) {
 	require.NotNil(t, memoWithoutTimestamps.CreateTime, "create_time should be auto-generated")
 	require.NotNil(t, memoWithoutTimestamps.UpdateTime, "update_time should be auto-generated")
 	require.True(t, time.Now().Unix()-memoWithoutTimestamps.CreateTime.AsTime().Unix() < 5, "create_time should be recent (within 5 seconds)")
+}
+
+// TestUpdateMemoUpdateTimeServerManaged verifies that update_time is server-managed:
+// it only refreshes when the memo body (content / attachments / relations / location)
+// changes, and client attempts to set it are silently ignored.
+func TestUpdateMemoUpdateTimeServerManaged(t *testing.T) {
+	ctx := context.Background()
+
+	ts := NewTestService(t)
+	defer ts.Cleanup()
+
+	user, err := ts.CreateRegularUser(ctx, "test-user-update-time")
+	require.NoError(t, err)
+	userCtx := ts.CreateUserContext(ctx, user.ID)
+
+	memo, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
+		Memo: &apiv1.Memo{Content: "initial content", Visibility: apiv1.Visibility_PRIVATE},
+	})
+	require.NoError(t, err)
+	baseUpdateTs := memo.UpdateTime.AsTime().Unix()
+
+	// 1. Body change refreshes update_time.
+	time.Sleep(1100 * time.Millisecond)
+	afterContent, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+		Memo:       &apiv1.Memo{Name: memo.Name, Content: "changed content"},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"content"}},
+	})
+	require.NoError(t, err)
+	require.Greater(t, afterContent.UpdateTime.AsTime().Unix(), baseUpdateTs, "content change must refresh update_time")
+	contentUpdateTs := afterContent.UpdateTime.AsTime().Unix()
+
+	// 2. Client-supplied update_time is ignored (no error, no change).
+	time.Sleep(1100 * time.Millisecond)
+	afterForced, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+		Memo:       &apiv1.Memo{Name: memo.Name, UpdateTime: timestamppb.New(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"update_time"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, contentUpdateTs, afterForced.UpdateTime.AsTime().Unix(), "update_time must be immutable from clients")
+
+	// 3. Non-body updates do not refresh update_time.
+	now := time.Now()
+	afterPlan, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+		Memo: &apiv1.Memo{
+			Name:          memo.Name,
+			PlanStartTime: timestamppb.New(now.Add(time.Hour)),
+			PlanEndTime:   timestamppb.New(now.Add(2 * time.Hour)),
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"plan_start_time", "plan_end_time"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, contentUpdateTs, afterPlan.UpdateTime.AsTime().Unix(), "plan time change must not refresh update_time")
+
+	afterPinned, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+		Memo:       &apiv1.Memo{Name: memo.Name, Pinned: true},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"pinned"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, contentUpdateTs, afterPinned.UpdateTime.AsTime().Unix(), "pin change must not refresh update_time")
+
+	// 4. Relations change counts as body change.
+	time.Sleep(1100 * time.Millisecond)
+	afterRelations, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+		Memo:       &apiv1.Memo{Name: memo.Name},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"relations"}},
+	})
+	require.NoError(t, err)
+	require.Greater(t, afterRelations.UpdateTime.AsTime().Unix(), contentUpdateTs, "relations change must refresh update_time")
+}
+
+// TestUpdateMemoStateTimestamps verifies the server-managed completed_time / archived_time stamps.
+func TestUpdateMemoStateTimestamps(t *testing.T) {
+	ctx := context.Background()
+
+	ts := NewTestService(t)
+	defer ts.Cleanup()
+
+	user, err := ts.CreateRegularUser(ctx, "test-user-state-timestamps")
+	require.NoError(t, err)
+	userCtx := ts.CreateUserContext(ctx, user.ID)
+
+	memo, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
+		Memo: &apiv1.Memo{Content: "state transitions", Visibility: apiv1.Visibility_PRIVATE},
+	})
+	require.NoError(t, err)
+	require.Nil(t, memo.CompletedTime, "completed_time must be empty for a NORMAL memo")
+	require.Nil(t, memo.ArchivedTime, "archived_time must be empty for a NORMAL memo")
+	baseUpdateTs := memo.UpdateTime.AsTime().Unix()
+
+	setState := func(state apiv1.State) *apiv1.Memo {
+		updated, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+			Memo:       &apiv1.Memo{Name: memo.Name, State: state},
+			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"state"}},
+		})
+		require.NoError(t, err)
+		return updated
+	}
+
+	// NORMAL -> COMPLETED stamps completed_time only.
+	completed := setState(apiv1.State_COMPLETED)
+	require.NotNil(t, completed.CompletedTime)
+	require.Nil(t, completed.ArchivedTime)
+	require.True(t, time.Now().Unix()-completed.CompletedTime.AsTime().Unix() < 5)
+	require.Equal(t, baseUpdateTs, completed.UpdateTime.AsTime().Unix(), "state change must not refresh update_time")
+
+	// COMPLETED -> ARCHIVED keeps completed_time and stamps archived_time.
+	archived := setState(apiv1.State_ARCHIVED)
+	require.NotNil(t, archived.CompletedTime, "archiving a completed memo keeps completed_time")
+	require.NotNil(t, archived.ArchivedTime)
+
+	// ARCHIVED -> NORMAL clears both stamps.
+	restored := setState(apiv1.State_NORMAL)
+	require.Nil(t, restored.CompletedTime)
+	require.Nil(t, restored.ArchivedTime)
+
+	// COMPLETED -> NORMAL clears completed_time.
+	require.NotNil(t, setState(apiv1.State_COMPLETED).CompletedTime)
+	require.Nil(t, setState(apiv1.State_NORMAL).CompletedTime)
 }

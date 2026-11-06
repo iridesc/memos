@@ -77,7 +77,7 @@ Authorization: Bearer <PAT 或 JWT 会话 token>
 | 参数 | 必填 | 说明 |
 |---|---|---|
 | `filter` | 否 | CEL 子集，见[filter 语法](#filter-语法) |
-| `order_by` | 否 | AIP-132 语法，字段：`pinned`、`create_time`、`update_time`、`plan_start_time`、`plan_end_time`、`smart`、`today_order`、`name`；可组合，如 `pinned desc, create_time desc` |
+| `order_by` | 否 | AIP-132 语法，字段：`pinned`、`create_time`、`update_time`、`plan_start_time`、`plan_end_time`、`completed_time`、`archived_time`、`smart`、`today_order`、`name`；可组合，如 `pinned desc, create_time desc`。查“最近完成”用 `completed_time desc` |
 | `order_by_pinned` | 否 | 已废弃，用 `order_by` |
 | `page` | 否 | 从 0 开始 |
 | `page_size` | 否 | 1–100，默认 20 |
@@ -115,7 +115,7 @@ Authorization: Bearer <PAT 或 JWT 会话 token>
 | `plan_end_time` | 否 | |
 | `today_order` | 否 | 今天视图排序 |
 
-只传 `state`/`pinned`/计划时间不会碰正文。
+只传 `state`/`pinned`/计划时间不会碰正文。`update_time` 不可写（传了会被静默忽略），它由服务端在正文本体变化时自动刷新；完成/归档时间分别是只读的 `completed_time` / `archived_time`。
 
 计划时间清空：两个字段都传 `null`。
 

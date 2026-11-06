@@ -47,7 +47,7 @@ export const useMemoActionHandlers = ({ memo, onEdit, setDeleteDialogOpen }: Use
             name: memo.name,
             content: nextContent,
           },
-          updateMask: ["content", "update_time"],
+          updateMask: ["content"],
         });
         toast.success(t("memo.task-actions.updated"));
       } catch (error: unknown) {

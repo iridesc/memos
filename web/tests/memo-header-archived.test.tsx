@@ -59,13 +59,15 @@ const renderPlanTime = (props: {
   isCompleted?: boolean;
   start: Date;
   end: Date;
-  updateTime?: Date;
+  completedTime?: Date;
+  archivedTime?: Date;
 }) =>
   render(
     <PlanTimeDisplay
       planStartTime={props.start}
       planEndTime={props.end}
-      updateTime={props.updateTime}
+      completedTime={props.completedTime}
+      archivedTime={props.archivedTime}
       isCompleted={props.isCompleted}
       isArchived={props.isArchived}
       compact={props.compact}
@@ -98,11 +100,11 @@ describe("PlanTimeDisplay", () => {
   });
 
   it("shows the archive date next to the archived label", () => {
-    const updateTime = new Date("2026-11-03T10:00:00Z");
-    renderPlanTime({ isArchived: true, updateTime, start: at(0, 9), end: at(0, 14) });
+    const archivedTime = new Date("2026-11-03T10:00:00Z");
+    renderPlanTime({ isArchived: true, archivedTime, start: at(0, 9), end: at(0, 14) });
 
     expect(screen.getByText("已归档")).toBeInTheDocument();
-    expect(screen.getByText(updateTime.toLocaleDateString("zh-Hans", { month: "numeric", day: "numeric" }))).toBeInTheDocument();
+    expect(screen.getByText(archivedTime.toLocaleDateString("zh-Hans", { month: "numeric", day: "numeric" }))).toBeInTheDocument();
   });
 
   it("does not show the archived label for an archived memo without plan times", () => {
@@ -113,7 +115,7 @@ describe("PlanTimeDisplay", () => {
   });
 
   it("keeps the completed label for a completed memo", () => {
-    renderPlanTime({ isCompleted: true, updateTime: new Date("2026-11-03T10:00:00Z"), start: at(0, 9), end: at(0, 14) });
+    renderPlanTime({ isCompleted: true, completedTime: new Date("2026-11-03T10:00:00Z"), start: at(0, 9), end: at(0, 14) });
 
     expect(screen.getByText("已完成")).toBeInTheDocument();
     expect(screen.queryByText("已归档")).not.toBeInTheDocument();

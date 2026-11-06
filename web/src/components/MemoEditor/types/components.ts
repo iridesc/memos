@@ -14,10 +14,10 @@ export interface MemoEditorProps {
   autoFocus?: boolean;
   /**
    * Default `createTime` for a *new* memo (create mode only). When set, the
-   * editor seeds both `createTime` and `updateTime` to this value and renders
-   * the timestamp popover so the user can adjust before saving. Tracked live:
-   * if the prop changes after mount, the editor's timestamps re-sync. Ignored
-   * in edit mode (when `memo` is set).
+   * editor seeds `createTime` to this value and renders the timestamp popover
+   * so the user can adjust before saving. Tracked live: if the prop changes
+   * after mount, the editor's timestamps re-sync. Ignored in edit mode (when
+   * `memo` is set).
    */
   defaultCreateTime?: Date;
   /** Default plan start/end times for new memos (e.g., auto-filled in Today view). */

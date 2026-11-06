@@ -43,6 +43,9 @@ type memoJSON struct {
 	// PlanStartTime and PlanEndTime are Unix seconds; omitted when unset.
 	PlanStartTime *int64 `json:"plan_start_time,omitempty"`
 	PlanEndTime   *int64 `json:"plan_end_time,omitempty"`
+	// CompletedTime and ArchivedTime are server-managed Unix seconds; omitted when unset.
+	CompletedTime *int64 `json:"completed_time,omitempty"`
+	ArchivedTime  *int64 `json:"archived_time,omitempty"`
 	// TodayOrder is the fractional-indexed display order in the Today view.
 	TodayOrder string `json:"today_order,omitempty"`
 }
@@ -78,6 +81,8 @@ func storeMemoToJSON(m *store.Memo) memoJSON {
 	}
 	j.PlanStartTime = m.PlanStartTs
 	j.PlanEndTime = m.PlanEndTs
+	j.CompletedTime = m.CompletedTs
+	j.ArchivedTime = m.ArchivedTs
 	if m.TodayOrder != nil {
 		j.TodayOrder = *m.TodayOrder
 	}
@@ -244,7 +249,7 @@ func parsePlanTimes(req mcp.CallToolRequest) (planTimesResult, error) {
 
 // parseMemoOrderBy applies an AIP-132 style order_by string to the memo find.
 // Supported fields: pinned, create_time, update_time, plan_start_time,
-// plan_end_time, smart, today_order, name.
+// plan_end_time, completed_time, archived_time, smart, today_order, name.
 func parseMemoOrderBy(orderBy string, find *store.FindMemo) error {
 	if strings.TrimSpace(orderBy) == "" {
 		return errors.New("empty order_by")
@@ -296,6 +301,18 @@ func parseMemoOrderBy(orderBy string, find *store.FindMemo) error {
 				find.OrderByTimeAsc = fieldDirection == "asc"
 			}
 			hasExplicitTimeField = true
+		case "completed_time":
+			if !hasExplicitTimeField {
+				find.OrderByCompletedTs = true
+				find.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "archived_time":
+			if !hasExplicitTimeField {
+				find.OrderByArchivedTs = true
+				find.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
 		case "smart":
 			find.OrderBySmart = true
 			find.SmartNowTs = time.Now().Unix()
@@ -304,7 +321,7 @@ func parseMemoOrderBy(orderBy string, find *store.FindMemo) error {
 			find.OrderByTodayOrder = true
 			hasExplicitTimeField = true
 		default:
-			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, today_order, name", fieldName)
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, completed_time, archived_time, smart, today_order, name", fieldName)
 		}
 	}
 
@@ -332,7 +349,7 @@ func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 				mcp.Description("Filter by state: NORMAL (default; also includes COMPLETED), COMPLETED, or ARCHIVED"),
 			),
 			mcp.WithBoolean("order_by_pinned", mcp.Description("Deprecated: prefer order_by. When true, pinned memos appear first (default false)")),
-			mcp.WithString("order_by", mcp.Description(`Sort order following AIP-132, e.g. "plan_start_time asc" or "pinned desc, create_time desc". Supported fields: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, today_order, name.`)),
+			mcp.WithString("order_by", mcp.Description(`Sort order following AIP-132, e.g. "plan_start_time asc" or "pinned desc, create_time desc". Supported fields: pinned, create_time, update_time, plan_start_time, plan_end_time, completed_time, archived_time, smart, today_order, name.`)),
 			mcp.WithString("filter", mcp.Description(`Optional CEL filter (supported subset of standard CEL syntax), e.g. content.contains("keyword") or tags.exists(t, t == "work")`)),
 			mcp.WithOutputSchema[memoListJSON](),
 		)...,

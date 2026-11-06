@@ -45,6 +45,8 @@ export const useMemoViewDerived = () => {
   const updateTime = memo.updateTime ? timestampDate(memo.updateTime) : undefined;
   const planStartTime = memo.planStartTime ? timestampDate(memo.planStartTime) : undefined;
   const planEndTime = memo.planEndTime ? timestampDate(memo.planEndTime) : undefined;
+  const completedTime = memo.completedTime ? timestampDate(memo.completedTime) : undefined;
+  const archivedTime = memo.archivedTime ? timestampDate(memo.archivedTime) : undefined;
 
   return {
     isArchived,
@@ -55,5 +57,7 @@ export const useMemoViewDerived = () => {
     updateTime,
     planStartTime,
     planEndTime,
+    completedTime,
+    archivedTime,
   };
 };

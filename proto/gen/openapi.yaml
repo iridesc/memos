@@ -3198,10 +3198,12 @@ components:
                          If not set on creation, the server will set it to the current time.
                     format: date-time
                 updateTime:
+                    readOnly: true
                     type: string
                     description: |-
-                        The last update timestamp.
-                         If not set on creation, the server will set it to the current time.
+                        Output only. The last update timestamp.
+                         Server-managed: it is refreshed only when the memo body changes (content,
+                         attachments, relations or location). Clients cannot set this field.
                     format: date-time
                 content:
                     type: string
@@ -3277,6 +3279,20 @@ components:
                         The display order in the Today view.
                          Uses fractional indexing (base-62) for insertion between arbitrary items.
                          Empty means the memo has not been explicitly ordered in Today view.
+                completedTime:
+                    readOnly: true
+                    type: string
+                    description: |-
+                        Output only. The timestamp when the memo entered the COMPLETED state.
+                         Cleared when the memo leaves the COMPLETED state.
+                    format: date-time
+                archivedTime:
+                    readOnly: true
+                    type: string
+                    description: |-
+                        Output only. The timestamp when the memo entered the ARCHIVED state.
+                         Cleared when the memo leaves the ARCHIVED state.
+                    format: date-time
         MemoRelation:
             required:
                 - memo

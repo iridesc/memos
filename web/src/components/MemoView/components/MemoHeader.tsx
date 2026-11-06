@@ -25,7 +25,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
   const [reactionSelectorOpen, setReactionSelectorOpen] = useState(false);
 
   const { memo, creator, currentUser, parentPage, isArchived, readonly, openEditor } = useMemoViewContext();
-  const { createTime, updateTime, planStartTime, planEndTime } = useMemoViewDerived();
+  const { createTime, updateTime, planStartTime, planEndTime, completedTime, archivedTime } = useMemoViewDerived();
   const updateMemo = useUpdateMemo();
 
   const navigateTo = useNavigateTo();
@@ -59,6 +59,8 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
     updatedAt: updateTime ? `${t("common.last-updated-at")}: ${updateTime.toLocaleString(i18n.language)}` : undefined,
     planStart: planStartTime ? `\u{1F4C5} ${t("common.plan-start")}: ${planStartTime.toLocaleString(i18n.language)}` : undefined,
     planEnd: planEndTime ? `\u{1F4C5} ${t("common.plan-end")}: ${planEndTime.toLocaleString(i18n.language)}` : undefined,
+    completedAt: completedTime ? `\u2705 ${t("common.completed-at")}: ${completedTime.toLocaleString(i18n.language)}` : undefined,
+    archivedAt: archivedTime ? `\u{1F4E6} ${t("common.archived-at")}: ${archivedTime.toLocaleString(i18n.language)}` : undefined,
   };
 
   return (
@@ -85,7 +87,8 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
         <PlanTimeDisplay
           planStartTime={planStartTime}
           planEndTime={planEndTime}
-          updateTime={updateTime}
+          completedTime={completedTime}
+          archivedTime={archivedTime}
           isCompleted={isCompleted}
           isArchived={isArchived}
           timeTooltip={timeTooltip}
@@ -151,6 +154,8 @@ interface TimeTooltipContent {
   updatedAt?: string;
   planStart?: string;
   planEnd?: string;
+  completedAt?: string;
+  archivedAt?: string;
 }
 
 const TimeTooltip = ({ children, content }: { children: React.ReactElement; content: TimeTooltipContent }) => (
@@ -161,6 +166,8 @@ const TimeTooltip = ({ children, content }: { children: React.ReactElement; cont
       {content.updatedAt && <span>{content.updatedAt}</span>}
       {content.planStart && <span>{content.planStart}</span>}
       {content.planEnd && <span>{content.planEnd}</span>}
+      {content.completedAt && <span>{content.completedAt}</span>}
+      {content.archivedAt && <span>{content.archivedAt}</span>}
     </TooltipContent>
   </Tooltip>
 );
@@ -168,14 +175,15 @@ const TimeTooltip = ({ children, content }: { children: React.ReactElement; cont
 export const PlanTimeDisplay: React.FC<{
   planStartTime?: Date;
   planEndTime?: Date;
-  updateTime?: Date;
+  completedTime?: Date;
+  archivedTime?: Date;
   isCompleted?: boolean;
   isArchived?: boolean;
   timeTooltip: TimeTooltipContent;
   onGotoDetail: () => void;
   /** Lists use calendar-day phrasing (明天 / 2周后); detail pages (compact=false) show the absolute range. */
   compact?: boolean;
-}> = ({ planStartTime, planEndTime, updateTime, isCompleted, isArchived, timeTooltip, onGotoDetail, compact = true }) => {
+}> = ({ planStartTime, planEndTime, completedTime, archivedTime, isCompleted, isArchived, timeTooltip, onGotoDetail, compact = true }) => {
   const t = useTranslate();
 
   if (!planStartTime || !planEndTime) return null;
@@ -184,7 +192,7 @@ export const PlanTimeDisplay: React.FC<{
   // instead of any relative plan-time state, so archived items never keep nagging
   // about being expired.
   if (isArchived) {
-    const dateStr = updateTime ? updateTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
+    const dateStr = archivedTime ? archivedTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
     return (
       <TimeTooltip content={timeTooltip}>
         <button
@@ -201,7 +209,7 @@ export const PlanTimeDisplay: React.FC<{
 
   // Completed memos: show green "已完成" with completion date.
   if (isCompleted) {
-    const dateStr = updateTime ? updateTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
+    const dateStr = completedTime ? completedTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
     return (
       <TimeTooltip content={timeTooltip}>
         <button

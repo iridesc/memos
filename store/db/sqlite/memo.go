@@ -47,12 +47,21 @@ func (d *DB) CreateMemo(ctx context.Context, create *store.Memo) (*store.Memo, e
 		placeholder = append(placeholder, "?")
 		args = append(args, *create.PlanEndTs)
 	}
+	if create.CompletedTs != nil {
+		fields = append(fields, "`completed_ts`")
+		placeholder = append(placeholder, "?")
+		args = append(args, *create.CompletedTs)
+	}
+	if create.ArchivedTs != nil {
+		fields = append(fields, "`archived_ts`")
+		placeholder = append(placeholder, "?")
+		args = append(args, *create.ArchivedTs)
+	}
 	if create.TodayOrder != nil {
 		fields = append(fields, "`today_order`")
 		placeholder = append(placeholder, "?")
 		args = append(args, *create.TodayOrder)
 	}
-
 
 	stmt := "INSERT INTO `memo` (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(placeholder, ", ") + ") RETURNING `id`, `created_ts`, `updated_ts`, `row_status`"
 	if err := d.db.QueryRowContext(ctx, stmt, args...).Scan(
@@ -148,13 +157,17 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 			"END ASC, "+
 			"CASE WHEN `memo`.`plan_end_ts` IS NOT NULL AND `memo`.`plan_end_ts` < ? THEN `memo`.`plan_end_ts` ELSE 9223372036854775807 END ASC, "+
 			"CASE WHEN `memo`.`plan_start_ts` IS NOT NULL AND `memo`.`plan_end_ts` IS NOT NULL AND `memo`.`plan_end_ts` >= ? THEN `memo`.`plan_start_ts` ELSE 9223372036854775807 END ASC, "+
-			"CASE WHEN `memo`.`plan_end_ts` IS NULL OR `memo`.`row_status` = 'COMPLETED' THEN `memo`.`updated_ts` ELSE 0 END DESC")
+			"CASE WHEN `memo`.`row_status` = 'COMPLETED' THEN COALESCE(`memo`.`completed_ts`, `memo`.`updated_ts`) WHEN `memo`.`plan_end_ts` IS NULL THEN `memo`.`updated_ts` ELSE 0 END DESC")
 	} else if find.OrderByTodayOrder {
 		orderBy = append(orderBy, "`today_order` ASC")
 	} else if find.OrderByPlanStart {
 		orderBy = append(orderBy, "`plan_start_ts` "+order)
 	} else if find.OrderByPlanEnd {
 		orderBy = append(orderBy, "`plan_end_ts` "+order)
+	} else if find.OrderByCompletedTs {
+		orderBy = append(orderBy, "`completed_ts` "+order)
+	} else if find.OrderByArchivedTs {
+		orderBy = append(orderBy, "`archived_ts` "+order)
 	} else if find.OrderByUpdatedTs {
 		orderBy = append(orderBy, "`updated_ts` "+order)
 	} else {
@@ -168,8 +181,10 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 		"`memo`.`creator_id` AS `creator_id`",
 		"`memo`.`created_ts` AS `created_ts`",
 		"`memo`.`updated_ts` AS `updated_ts`",
-			"`memo`.`plan_start_ts` AS `plan_start_ts`",
-			"`memo`.`plan_end_ts` AS `plan_end_ts`",
+		"`memo`.`plan_start_ts` AS `plan_start_ts`",
+		"`memo`.`plan_end_ts` AS `plan_end_ts`",
+		"`memo`.`completed_ts` AS `completed_ts`",
+		"`memo`.`archived_ts` AS `archived_ts`",
 		"`memo`.`today_order` AS `today_order`",
 		"`memo`.`row_status` AS `row_status`",
 		"`memo`.`visibility` AS `visibility`",
@@ -210,8 +225,10 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 			&memo.CreatorID,
 			&memo.CreatedTs,
 			&memo.UpdatedTs,
-				&memo.PlanStartTs,
-				&memo.PlanEndTs,
+			&memo.PlanStartTs,
+			&memo.PlanEndTs,
+			&memo.CompletedTs,
+			&memo.ArchivedTs,
 			&memo.TodayOrder,
 			&memo.RowStatus,
 			&memo.Visibility,
@@ -260,20 +277,34 @@ func (d *DB) UpdateMemo(ctx context.Context, update *store.UpdateMemo) error {
 	if v := update.Visibility; v != nil {
 		set, args = append(set, "`visibility` = ?"), append(args, *v)
 	}
-		if v := update.PlanEndTs; v != nil {
-			if *v == -1 {
-				set = append(set, "`plan_end_ts` = NULL")
-			} else {
-				set, args = append(set, "`plan_end_ts` = ?"), append(args, *v)
-			}
+	if v := update.PlanEndTs; v != nil {
+		if *v == -1 {
+			set = append(set, "`plan_end_ts` = NULL")
+		} else {
+			set, args = append(set, "`plan_end_ts` = ?"), append(args, *v)
 		}
-		if v := update.PlanStartTs; v != nil {
-			if *v == -1 {
-				set = append(set, "`plan_start_ts` = NULL")
-			} else {
-				set, args = append(set, "`plan_start_ts` = ?"), append(args, *v)
-			}
+	}
+	if v := update.PlanStartTs; v != nil {
+		if *v == -1 {
+			set = append(set, "`plan_start_ts` = NULL")
+		} else {
+			set, args = append(set, "`plan_start_ts` = ?"), append(args, *v)
 		}
+	}
+	if v := update.CompletedTs; v != nil {
+		if *v == -1 {
+			set = append(set, "`completed_ts` = NULL")
+		} else {
+			set, args = append(set, "`completed_ts` = ?"), append(args, *v)
+		}
+	}
+	if v := update.ArchivedTs; v != nil {
+		if *v == -1 {
+			set = append(set, "`archived_ts` = NULL")
+		} else {
+			set, args = append(set, "`archived_ts` = ?"), append(args, *v)
+		}
+	}
 
 	if v := update.Pinned; v != nil {
 		set, args = append(set, "`pinned` = ?"), append(args, *v)

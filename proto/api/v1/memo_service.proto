@@ -211,9 +211,10 @@ message Memo {
   // If not set on creation, the server will set it to the current time.
   google.protobuf.Timestamp create_time = 4 [(google.api.field_behavior) = OPTIONAL];
 
-  // The last update timestamp.
-  // If not set on creation, the server will set it to the current time.
-  google.protobuf.Timestamp update_time = 5 [(google.api.field_behavior) = OPTIONAL];
+  // Output only. The last update timestamp.
+  // Server-managed: it is refreshed only when the memo body changes (content,
+  // attachments, relations or location). Clients cannot set this field.
+  google.protobuf.Timestamp update_time = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   reserved 6;
   reserved "display_time";
@@ -266,6 +267,14 @@ message Memo {
   // Uses fractional indexing (base-62) for insertion between arbitrary items.
   // Empty means the memo has not been explicitly ordered in Today view.
   string today_order = 21 [(google.api.field_behavior) = OPTIONAL];
+
+  // Output only. The timestamp when the memo entered the COMPLETED state.
+  // Cleared when the memo leaves the COMPLETED state.
+  google.protobuf.Timestamp completed_time = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. The timestamp when the memo entered the ARCHIVED state.
+  // Cleared when the memo leaves the ARCHIVED state.
+  google.protobuf.Timestamp archived_time = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
 
  // Computed properties of a memo.
   message Property {

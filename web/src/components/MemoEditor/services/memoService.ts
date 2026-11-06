@@ -49,24 +49,15 @@ function buildUpdateMask(
     patch.location = state.metadata.location;
   }
 
-  // Auto-update timestamp if content changed
-  if (["content", "attachments", "relations", "location"].some((key) => mask.has(key))) {
-    mask.add("update_time");
-  }
+  // Auto-update timestamp is server-managed: the API refreshes update_time
+  // whenever content / attachments / relations / location change.
 
-  // Handle custom timestamps
+  // Handle custom create time
   if (state.timestamps.createTime) {
     const prevCreateTime = prevMemo.createTime ? timestampDate(prevMemo.createTime) : undefined;
     if (!isEqual(state.timestamps.createTime, prevCreateTime)) {
       mask.add("create_time");
       patch.createTime = timestampFromDate(state.timestamps.createTime);
-    }
-  }
-  if (state.timestamps.updateTime) {
-    const prevUpdateTime = prevMemo.updateTime ? timestampDate(prevMemo.updateTime) : undefined;
-    if (!isEqual(state.timestamps.updateTime, prevUpdateTime)) {
-      mask.add("update_time");
-      patch.updateTime = timestampFromDate(state.timestamps.updateTime);
     }
   }
 
@@ -131,7 +122,6 @@ export const memoService = {
       relations: state.metadata.relations,
       location: state.metadata.location,
       createTime: state.timestamps.createTime ? timestampFromDate(state.timestamps.createTime) : undefined,
-      updateTime: state.timestamps.updateTime ? timestampFromDate(state.timestamps.updateTime) : undefined,
       planStartTime: state.timestamps.planStartTime ? timestampFromDate(state.timestamps.planStartTime) : undefined,
       planEndTime: state.timestamps.planEndTime ? timestampFromDate(state.timestamps.planEndTime) : undefined,
     });
@@ -163,7 +153,6 @@ export const memoService = {
       },
       timestamps: {
         createTime: memo.createTime ? timestampDate(memo.createTime) : undefined,
-        updateTime: memo.updateTime ? timestampDate(memo.updateTime) : undefined,
         planStartTime: memo.planStartTime ? timestampDate(memo.planStartTime) : undefined,
         planEndTime: memo.planEndTime ? timestampDate(memo.planEndTime) : undefined,
       },

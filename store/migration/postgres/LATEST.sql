@@ -42,6 +42,8 @@ CREATE TABLE memo (
   plan_start_ts BIGINT DEFAULT NULL,
   plan_end_ts BIGINT DEFAULT NULL,
   today_order TEXT DEFAULT NULL,
+  completed_ts BIGINT DEFAULT NULL,
+  archived_ts BIGINT DEFAULT NULL,
   payload JSONB NOT NULL DEFAULT '{}'
 );
 

@@ -58,7 +58,7 @@ const TimestampInput: FC<{
 export const TimestampPopover: FC = () => {
   const t = useTranslate();
   const { state, actions, dispatch } = useEditorContext();
-  const { createTime, updateTime } = state.timestamps;
+  const { createTime } = state.timestamps;
 
   if (!createTime) return null;
 
@@ -77,11 +77,6 @@ export const TimestampPopover: FC = () => {
           label={t("common.created-at")}
           date={createTime}
           onChange={(d) => dispatch(actions.setTimestamps({ createTime: d }))}
-        />
-        <TimestampInput
-          label={t("common.last-updated-at")}
-          date={updateTime}
-          onChange={(d) => dispatch(actions.setTimestamps({ updateTime: d }))}
         />
       </PopoverContent>
     </Popover>

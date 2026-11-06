@@ -96,10 +96,8 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 		createdTs := request.Memo.CreateTime.AsTime().Unix()
 		create.CreatedTs = createdTs
 	}
-	if request.Memo.UpdateTime != nil && request.Memo.UpdateTime.IsValid() {
-		updatedTs := request.Memo.UpdateTime.AsTime().Unix()
-		create.UpdatedTs = updatedTs
-	}
+	// update_time is server-managed (OUTPUT_ONLY): it starts at the creation time
+	// and is refreshed by the server whenever the memo body changes.
 
 	contentLengthLimit, err := s.getContentLengthLimit(ctx)
 	if err != nil {
@@ -494,8 +492,12 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 	}
 	var previousContent string
 	contentUpdated := false
+	// contentTouched tracks whether the memo body changed. update_time is
+	// server-managed and only refreshed when the body changes.
+	contentTouched := false
 	for _, path := range request.UpdateMask.Paths {
 		if path == "content" {
+			contentTouched = true
 			contentUpdated = true
 			previousContent = memo.Content
 			contentLengthLimit, err := s.getContentLengthLimit(ctx)
@@ -529,18 +531,17 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 		} else if path == "state" {
 			rowStatus := convertStateToStore(request.Memo.State)
 			update.RowStatus = &rowStatus
+			applyStateTimestamps(memo.RowStatus, rowStatus, update)
 		} else if path == "create_time" {
 			createdTs := request.Memo.CreateTime.AsTime().Unix()
 			update.CreatedTs = &createdTs
 		} else if path == "update_time" {
-			updatedTs := time.Now().Unix()
-			if request.Memo.UpdateTime != nil {
-				updatedTs = request.Memo.UpdateTime.AsTime().Unix()
-			}
-			update.UpdatedTs = &updatedTs
+			// update_time is OUTPUT_ONLY and server-managed: silently ignore client
+			// attempts to set it, so older clients keep working.
 		} else if path == "display_time" {
 			return nil, status.Errorf(codes.InvalidArgument, "display_time is not supported")
 		} else if path == "location" {
+			contentTouched = true
 			payload := memo.Payload
 			payload.Location = convertLocationToStore(request.Memo.Location)
 			update.Payload = payload
@@ -561,10 +562,12 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 		} else if path == "today_order" {
 			update.TodayOrder = &request.Memo.TodayOrder
 		} else if path == "attachments" {
+			contentTouched = true
 			if err := s.setMemoAttachmentsInternal(ctx, user, memo, request.Memo.Attachments); err != nil {
 				return nil, errors.Wrap(err, "failed to set memo attachments")
 			}
 		} else if path == "relations" {
+			contentTouched = true
 			if err := s.setMemoRelationsInternal(ctx, memo, request.Memo.Relations); err != nil {
 				return nil, errors.Wrap(err, "failed to set memo relations")
 			}
@@ -584,6 +587,11 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 		if err := validatePlanTimes(effectiveStart, effectiveEnd, true); err != nil {
 			return nil, err
 		}
+	}
+
+	if contentTouched {
+		updatedTs := time.Now().Unix()
+		update.UpdatedTs = &updatedTs
 	}
 
 	if err = s.Store.UpdateMemo(ctx, update); err != nil {
@@ -1088,6 +1096,18 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 				memoFind.OrderByTimeAsc = fieldDirection == "asc"
 			}
 			hasExplicitTimeField = true
+		case "completed_time":
+			if !hasExplicitTimeField {
+				memoFind.OrderByCompletedTs = true
+				memoFind.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
+		case "archived_time":
+			if !hasExplicitTimeField {
+				memoFind.OrderByArchivedTs = true
+				memoFind.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
 		case "smart":
 			memoFind.OrderBySmart = true
 			memoFind.SmartNowTs = time.Now().Unix()
@@ -1096,7 +1116,7 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 			memoFind.OrderByTodayOrder = true
 			hasExplicitTimeField = true
 		default:
-			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, smart, today_order, name", fieldName)
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, plan_start_time, plan_end_time, completed_time, archived_time, smart, today_order, name", fieldName)
 		}
 	}
 
@@ -1106,6 +1126,31 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 	}
 
 	return nil
+}
+
+// applyStateTimestamps maintains the server-managed completed_ts / archived_ts
+// stamps when a memo moves between states. Leaving a state clears its stamp;
+// restoring a memo to NORMAL clears both.
+func applyStateTimestamps(current, next store.RowStatus, update *store.UpdateMemo) {
+	if current == next {
+		return
+	}
+	now := time.Now().Unix()
+	clear := int64(-1)
+
+	switch next {
+	case store.Completed:
+		update.CompletedTs = &now
+		if current == store.Archived {
+			update.ArchivedTs = &clear
+		}
+	case store.Archived:
+		update.ArchivedTs = &now
+		// Keep completed_ts: a memo can be completed and then archived.
+	case store.Normal:
+		update.CompletedTs = &clear
+		update.ArchivedTs = &clear
+	}
 }
 
 // validatePlanTimes validates plan start and end times.

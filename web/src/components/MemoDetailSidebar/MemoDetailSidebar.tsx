@@ -102,6 +102,16 @@ const MemoDetailSidebar = ({ memo, className, onShareImageOpen }: Props) => {
               {t("common.last-updated-at")}: {memo.updateTime ? timestampDate(memo.updateTime).toLocaleString() : "—"}
             </p>
           )}
+          {memo.completedTime && (
+            <p className="text-xs text-green-600">
+              {t("common.completed-at")}: {timestampDate(memo.completedTime).toLocaleString()}
+            </p>
+          )}
+          {memo.archivedTime && (
+            <p className="text-xs text-muted-foreground">
+              {t("common.archived-at")}: {timestampDate(memo.archivedTime).toLocaleString()}
+            </p>
+          )}
         </div>
       </SidebarSection>
 

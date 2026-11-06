@@ -47,7 +47,7 @@ export const useMemoInit = ({
         dispatch(actions.setMetadata({ visibility: defaultVisibility }));
       }
       if (defaultCreateTime) {
-        dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultCreateTime }));
+        dispatch(actions.setTimestamps({ createTime: defaultCreateTime }));
       }
       if (defaultPlanTimes) {
         dispatch(actions.setTimestamps({ planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }));

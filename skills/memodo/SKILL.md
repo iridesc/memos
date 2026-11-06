@@ -70,9 +70,24 @@ pinned           置顶
 today_order      今天视图里的排序（fractional index）
 parent           父 memo（评论/转发关系）
 property         {has_task_list, has_incomplete_tasks, has_link, has_code} 派生标记
+create_time      Unix 秒，可写（日历补记用）
+update_time      Unix 秒，**只读**，服务端管理
+completed_time   Unix 秒，**只读**，进入 COMPLETED 的时刻
+archived_time    Unix 秒，**只读**，进入 ARCHIVED 的时刻
 ```
 
 `tags` 是派生结果，不能直接写。想让一条 memo 带上 `#<一级>/<二级>`，就得让正文里真的出现这串标签文本。
+
+**时间字段的写入者**：
+
+| 字段 | 谁写 | 何时变 |
+|---|---|---|
+| `create_time` | 客户端可写 | 创建（或日历补记）时 |
+| `update_time` | **仅服务端** | 正文本体（`content` / 附件 / 关系 / `location`）变化时；改 `state`、`pinned`、计划时间、`today_order` 都不动 |
+| `completed_time` | **仅服务端** | 进入 `COMPLETED` 时写入；回到 `NORMAL` 时清空；`COMPLETED → ARCHIVED` 保留 |
+| `archived_time` | **仅服务端** | 进入 `ARCHIVED` 时写入；离开归档时清空 |
+
+客户端传 `update_time` 会被**静默忽略**（不报错）。所以想知道一件事是什么时候完成的，要看 `completed_time`，别再看 `update_time`。
 
 ## 3. 为什么先 `get_memo` 再 `update_memo`
 
@@ -183,6 +198,16 @@ update_memo(name: "memos/xxx", state: "ARCHIVED")
 ```
 归档后 `search_memos` 就查不到了，这是预期行为，不是数据丢了。
 
+**找“最近完成但未归档”的条目**
+```
+list_memos(state: "COMPLETED", order_by: "completed_time desc", page_size: 20)
+```
+完成未归档就是 `state == COMPLETED`（`ARCHIVED` 是另一个状态）。要按时间窗口筛就在 `filter` 里用 `completed_ts`：
+
+```
+list_memos(state: "COMPLETED", filter: "completed_ts >= <今天 0 点的 Unix 秒>")
+```
+
 **按标签查某一类**
 ```
 list_memos(filter: 'tags.exists(t, t == "<一级>/<二级>")', page_size: 100)
@@ -253,6 +278,8 @@ list_tags()   # 返回全部标签及计数，按 count 排序看哪些是长尾
 | `plan_start_time and plan_end_time must be provided together` | 只传了一个，成对补齐或都省略 |
 | `plan_end_time must be after or equal to plan_start_time` | 起止反了 |
 | 搜索查不到明明存在的条目 | 它可能是 ARCHIVED/COMPLETED，换 `list_memos(state: ...)` |
+| “最近完成”的条目排序不对 / 找不到 | 旧版本用 `updated_time` 当完成时间。现在用 `order_by: "completed_time desc"`，或在 `filter` 里用 `completed_ts` |
+| `state` 改成 COMPLETED 后 `update_time` 没变 | 预期行为：状态变更不刷 `update_time`，看 `completed_time` |
 | 标签没生效 | 检查是否有 `#`、是否被空格或标点截断、是否超过 100 字符、是否误写成 `##` |
 | 请求被拒但 token 正确 | `Origin` 头与实例不同源，去掉或改成实例域名 |
 | 工具列表里没有想要的工具 | 客户端用了 `/mcp/x/...` 或 `X-MCP-Toolsets` 裁剪，扩大工具集 |

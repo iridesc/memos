@@ -45,13 +45,17 @@ type Memo struct {
 	UpdatedTs int64
 
 	// Domain specific fields
-	Content      string
-	Visibility   Visibility
-	Pinned       bool
-	PlanStartTs  *int64
-	PlanEndTs    *int64
-		TodayOrder   *string
-	Payload      *storepb.MemoPayload
+	Content     string
+	Visibility  Visibility
+	Pinned      bool
+	PlanStartTs *int64
+	PlanEndTs   *int64
+	// CompletedTs records when the memo entered the COMPLETED state, server-managed only.
+	CompletedTs *int64
+	// ArchivedTs records when the memo entered the ARCHIVED state, server-managed only.
+	ArchivedTs *int64
+	TodayOrder *string
+	Payload    *storepb.MemoPayload
 
 	// Composed fields
 	ParentUID *string
@@ -67,7 +71,7 @@ type FindMemo struct {
 	// Standard fields
 	RowStatus     *RowStatus
 	RowStatusList []RowStatus
-	CreatorID    *int32
+	CreatorID     *int32
 
 	// Domain specific fields
 	VisibilityList  []Visibility
@@ -80,15 +84,17 @@ type FindMemo struct {
 	Offset *int
 
 	// Ordering
-	OrderByPinned     bool
-	OrderByUpdatedTs  bool
-	OrderByPlanStart  bool
-	OrderByPlanEnd    bool
-	OrderByTimeAsc    bool
+	OrderByPinned      bool
+	OrderByUpdatedTs   bool
+	OrderByPlanStart   bool
+	OrderByPlanEnd     bool
+	OrderByCompletedTs bool
+	OrderByArchivedTs  bool
+	OrderByTimeAsc     bool
 	// Smart ordering: returns memos sorted by tier (expired → planned → unscheduled → completed),
 	// with within-tier ordering matching the smart sort behavior. Server computes tiers at query time.
-	OrderBySmart bool
-		OrderByTodayOrder bool
+	OrderBySmart      bool
+	OrderByTodayOrder bool
 	// SmartNowTs is the Unix epoch timestamp used as "now" for smart tier comparisons.
 	// Only used when OrderBySmart is true.
 	SmartNowTs int64
@@ -114,7 +120,9 @@ type UpdateMemo struct {
 	Pinned      *bool
 	PlanStartTs *int64
 	PlanEndTs   *int64
-		TodayOrder  *string
+	CompletedTs *int64
+	ArchivedTs  *int64
+	TodayOrder  *string
 	Payload     *storepb.MemoPayload
 }
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { isMemoCompletedOnDay } from "@/lib/today-completion";
 import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
 
-const memo = (time?: Date) => create(MemoSchema, { name: "memos/test", updateTime: time ? timestampFromDate(time) : undefined });
+const memo = (time?: Date) => create(MemoSchema, { name: "memos/test", completedTime: time ? timestampFromDate(time) : undefined });
 
 describe("today completed memos", () => {
   it("includes only memos completed within the local day", () => {

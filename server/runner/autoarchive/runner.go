@@ -98,11 +98,12 @@ func (r *Runner) RunOnce(ctx context.Context) {
 			archiveAfterDays = 15 // Default.
 		}
 
-		// Query COMPLETED memos for this user that are older than archive_after_days.
+		// Query COMPLETED memos for this user whose completed_ts is older than archive_after_days.
 		cutoffTs := now.Add(-time.Duration(archiveAfterDays) * 24 * time.Hour).Unix()
 		completed := store.Completed
-		// Use CEL filter for updated_ts comparison (supported by all 3 DB drivers).
-		cutoffFilter := fmt.Sprintf("updated_ts < %d", cutoffTs)
+		// completed_ts is NULL for memos that never entered the COMPLETED state, and
+		// NULL comparisons are never true, so those rows are skipped naturally.
+		cutoffFilter := fmt.Sprintf("completed_ts < %d", cutoffTs)
 
 		limit := 500
 		offset := 0
@@ -131,11 +132,11 @@ func (r *Runner) RunOnce(ctx context.Context) {
 			// Batch archive memos.
 			for _, memo := range memos {
 				archived := store.Archived
-				updatedTs := now.Unix()
+				archivedTs := now.Unix()
 				if err := r.Store.UpdateMemo(ctx, &store.UpdateMemo{
-					ID:        memo.ID,
-					RowStatus: &archived,
-					UpdatedTs: &updatedTs,
+					ID:         memo.ID,
+					RowStatus:  &archived,
+					ArchivedTs: &archivedTs,
 				}); err != nil {
 					slog.Error("AutoArchive runner: failed to archive memo",
 						"memoID", memo.ID,

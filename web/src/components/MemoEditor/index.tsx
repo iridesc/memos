@@ -115,7 +115,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   // Focus mode management with body scroll lock
   useFocusMode(state.ui.isFocusMode);
 
-  // Live-sync the draft's createTime/updateTime to the calendar-derived prop.
+  // Live-sync the draft's createTime to the calendar-derived prop.
   // Only applies in create mode; edit mode owns its own timestamps. Runs after
   // initial mount (the seed value is set in useMemoInit), and again whenever
   // the prop changes — e.g., when the user picks a different calendar date
@@ -126,7 +126,6 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
     dispatch(
       actions.setTimestamps({
         createTime: defaultCreateTime,
-        updateTime: defaultCreateTime,
         ...(defaultPlanTimes && { planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }),
       }),
     );
@@ -318,7 +317,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
       // across reset), and memo #2 onward would silently fall back to "now".
       if (!memoName) {
         if (defaultCreateTime) {
-          dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultCreateTime }));
+          dispatch(actions.setTimestamps({ createTime: defaultCreateTime }));
         }
         if (defaultPlanTimes) {
           dispatch(actions.setTimestamps({ planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }));
