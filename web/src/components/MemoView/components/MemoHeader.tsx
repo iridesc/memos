@@ -20,7 +20,7 @@ import { useMemoActions } from "../hooks";
 import { useMemoViewContext, useMemoViewDerived } from "../MemoViewContext";
 import type { MemoHeaderProps } from "../types";
 
-const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, showPinned }) => {
+const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, showPinned, compact }) => {
   const t = useTranslate();
   const [reactionSelectorOpen, setReactionSelectorOpen] = useState(false);
 
@@ -93,6 +93,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
           isArchived={isArchived}
           timeTooltip={timeTooltip}
           onGotoDetail={handleGotoMemoDetailPage}
+          compact={compact}
         />
       </div>
 
