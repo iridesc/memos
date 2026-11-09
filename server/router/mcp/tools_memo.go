@@ -384,8 +384,8 @@ func (s *MCPService) registerMemoTools(mcpSrv *mcpserver.MCPServer) {
 				mcp.Description("New visibility"),
 			),
 			mcp.WithBoolean("pinned", mcp.Description("Pin or unpin the memo")),
-			mcp.WithNumber("plan_start_time", mcp.Description("New planned start time as Unix seconds. Provide together with plan_end_time; pass null for both to clear.")),
-			mcp.WithNumber("plan_end_time", mcp.Description("New planned end time as Unix seconds. Provide together with plan_start_time; pass null for both to clear.")),
+			mcp.WithNumber("plan_start_time", nullableNumber(), mcp.Description("New planned start time as Unix seconds. Provide together with plan_end_time; pass null for both to clear.")),
+			mcp.WithNumber("plan_end_time", nullableNumber(), mcp.Description("New planned end time as Unix seconds. Provide together with plan_start_time; pass null for both to clear.")),
 			mcp.WithString("today_order", mcp.Description("Fractional-indexed display order in the Today view. Omit to leave unchanged; empty string clears the order.")),
 			mcp.WithString("state",
 				mcp.Enum("NORMAL", "COMPLETED", "ARCHIVED"),
@@ -626,7 +626,7 @@ func (s *MCPService) handleUpdateMemo(ctx context.Context, req mcp.CallToolReque
 	}
 
 	if len(updateMask.Paths) == 0 {
-		return mcp.NewToolResultError("at least one field must be provided to update"), nil
+		return mcp.NewToolResultError("at least one field must be provided to update (plan times can be cleared by passing plan_start_time and plan_end_time as null)"), nil
 	}
 
 	updated, err := s.apiV1Service.UpdateMemo(ctx, &v1pb.UpdateMemoRequest{

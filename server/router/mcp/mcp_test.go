@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/lithammer/shortuuid/v4"
 	"github.com/mark3labs/mcp-go/mcp"
+	mcpserver "github.com/mark3labs/mcp-go/server"
 	"github.com/stretchr/testify/require"
 
 	"github.com/usememos/memodo/internal/profile"
@@ -628,6 +629,25 @@ func TestMCPRelationAndAttachmentMutationsEmitMemoUpdated(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, relinkResult.IsError)
 	requireNoSSEEvent(t, client)
+}
+
+// The server honours an explicit null to clear the plan times, but strict MCP
+// clients validate arguments against the advertised JSON schema. A plain
+// "number" parameter makes those clients drop the nulls, so the clear request
+// never reaches the handler.
+func TestUpdateMemoToolSchemaAllowsNullPlanTimes(t *testing.T) {
+	ts := newTestMCPService(t)
+	mcpSrv := mcpserver.NewMCPServer("Memos", "1.0.0")
+	ts.service.registerMemoTools(mcpSrv)
+
+	tool, ok := mcpSrv.ListTools()["update_memo"]
+	require.True(t, ok)
+
+	for _, name := range []string{"plan_start_time", "plan_end_time"} {
+		property, ok := tool.Tool.InputSchema.Properties[name].(map[string]any)
+		require.True(t, ok, "property %s must be declared", name)
+		require.Equal(t, []string{"number", "null"}, property["type"], "property %s must accept null", name)
+	}
 }
 
 func TestMCPMemoPlanTimesAndTodayOrder(t *testing.T) {

@@ -74,6 +74,16 @@ func stringSet(values ...string) map[string]struct{} {
 	return result
 }
 
+// nullableNumber widens a numeric tool parameter so clients may pass an
+// explicit JSON null. Strict MCP clients validate arguments against the
+// advertised JSON schema and drop (or reject) nulls for a plain "number"
+// parameter, which silently breaks "pass null to clear" semantics.
+func nullableNumber() mcp.PropertyOption {
+	return func(schema map[string]any) {
+		schema["type"] = []string{"number", "null"}
+	}
+}
+
 func readOnlyToolOptions(title string, description string, opts ...mcp.ToolOption) []mcp.ToolOption {
 	return annotatedToolOptions(title, description, true, false, true, false, opts...)
 }
