@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createQuickPlanTimeRange } from "@/lib/plan-time";
+import { createPresetPlanTimeRange, createQuickPlanTimeRange, PLAN_TIME_PRESETS } from "@/lib/plan-time";
 import { describePlanWhen, formatRelativePlanTime } from "@/lib/time";
 
 describe("quick plan time ranges", () => {
@@ -13,6 +13,74 @@ describe("quick plan time ranges", () => {
     const result = createQuickPlanTimeRange(new Date(2026, 9, 27, 23, 58), 5);
     expect(result.planStartTime).toEqual(new Date(2026, 9, 28, 0, 3));
     expect(result.planEndTime).toEqual(new Date(2026, 9, 28, 23, 59, 59, 999));
+  });
+});
+
+const preset = (id: string) => {
+  const found = PLAN_TIME_PRESETS.find((item) => item.id === id);
+  if (!found) throw new Error(`unknown preset ${id}`);
+  return found;
+};
+
+// Wednesday 2026-11-04 15:00 local.
+const NOW = new Date(2026, 10, 4, 15, 0, 0);
+
+describe("plan time presets", () => {
+  it("offers three relative and three calendar presets", () => {
+    expect(PLAN_TIME_PRESETS.map((item) => item.id)).toEqual([
+      "after-15m",
+      "after-60m",
+      "after-180m",
+      "tomorrow",
+      "next-week",
+      "next-month",
+    ]);
+  });
+
+  it("keeps relative presets anchored to now and ending that day", () => {
+    const r = createPresetPlanTimeRange(preset("after-15m"), NOW);
+    expect(r.planStartTime).toEqual(new Date(2026, 10, 4, 15, 15, 0));
+    expect(r.planEndTime).toEqual(new Date(2026, 10, 4, 23, 59, 59, 999));
+
+    const hour = createPresetPlanTimeRange(preset("after-60m"), NOW);
+    expect(hour.planStartTime).toEqual(new Date(2026, 10, 4, 16, 0, 0));
+
+    const three = createPresetPlanTimeRange(preset("after-180m"), NOW);
+    expect(three.planStartTime).toEqual(new Date(2026, 10, 4, 18, 0, 0));
+  });
+
+  it("starts the tomorrow preset at 09:00 the next day", () => {
+    const r = createPresetPlanTimeRange(preset("tomorrow"), NOW);
+    expect(r.planStartTime).toEqual(new Date(2026, 10, 5, 9, 0, 0, 0));
+    expect(r.planEndTime).toEqual(new Date(2026, 10, 5, 23, 59, 59, 999));
+  });
+
+  it("points next week at the coming Monday", () => {
+    // Wednesday -> the following Monday, five days out.
+    expect(createPresetPlanTimeRange(preset("next-week"), NOW).planStartTime).toEqual(new Date(2026, 10, 9, 9, 0, 0, 0));
+    // Sunday -> the very next day.
+    expect(createPresetPlanTimeRange(preset("next-week"), new Date(2026, 10, 8, 10, 0, 0)).planStartTime).toEqual(
+      new Date(2026, 10, 9, 9, 0, 0, 0),
+    );
+    // Monday -> a full week out, never today.
+    expect(createPresetPlanTimeRange(preset("next-week"), new Date(2026, 10, 9, 10, 0, 0)).planStartTime).toEqual(
+      new Date(2026, 10, 16, 9, 0, 0, 0),
+    );
+  });
+
+  it("points next month at the 1st and rolls over the year", () => {
+    expect(createPresetPlanTimeRange(preset("next-month"), NOW).planStartTime).toEqual(new Date(2026, 11, 1, 9, 0, 0, 0));
+    expect(createPresetPlanTimeRange(preset("next-month"), new Date(2026, 11, 15, 10, 0, 0)).planStartTime).toEqual(
+      new Date(2027, 0, 1, 9, 0, 0, 0),
+    );
+  });
+
+  it("keeps every preset inside a single calendar day", () => {
+    for (const item of PLAN_TIME_PRESETS) {
+      const { planStartTime, planEndTime } = createPresetPlanTimeRange(item, NOW);
+      expect(planStartTime.getDate()).toBe(planEndTime.getDate());
+      expect(planEndTime.getTime()).toBeGreaterThan(planStartTime.getTime());
+    }
   });
 });
 
@@ -52,13 +120,15 @@ describe("formatRelativePlanTime calendar offsets", () => {
     // 59.99 minutes must not render as "60 minutes".
     expect(formatRelativePlanTime(at(1, 23), dayEnd(1), now).duration).toEqual({ value: 1, unit: "hour" });
     // 23h59m must not render as "24 hours".
-    expect(
-      formatRelativePlanTime(new Date(2026, 10, 5, 0, 1), new Date(2026, 10, 6, 0, 0), now).duration,
-    ).toEqual({ value: 1, unit: "day" });
+    expect(formatRelativePlanTime(new Date(2026, 10, 5, 0, 1), new Date(2026, 10, 6, 0, 0), now).duration).toEqual({
+      value: 1,
+      unit: "day",
+    });
     // 29.98 days must not render as "30 days".
-    expect(
-      formatRelativePlanTime(new Date(2026, 10, 5, 0, 0), new Date(2026, 11, 4, 23, 59, 59), now).duration,
-    ).toEqual({ value: 1, unit: "month" });
+    expect(formatRelativePlanTime(new Date(2026, 10, 5, 0, 0), new Date(2026, 11, 4, 23, 59, 59), now).duration).toEqual({
+      value: 1,
+      unit: "month",
+    });
   });
 });
 

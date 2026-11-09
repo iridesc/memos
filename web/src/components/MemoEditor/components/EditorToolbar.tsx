@@ -2,7 +2,7 @@ import { CalendarIcon } from "lucide-react";
 import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { createQuickPlanTimeRange, PLAN_TIME_PRESETS } from "@/lib/plan-time";
+import { createPresetPlanTimeRange, DEFAULT_PLAN_TIME_PRESET, PLAN_TIME_PRESETS, type PlanTimePreset } from "@/lib/plan-time";
 import { useTranslate } from "@/utils/i18n";
 import { validationService } from "../services";
 import { useEditorContext } from "../state";
@@ -26,13 +26,13 @@ const PlanTimeEditor: FC<{
     setOpen(newOpen);
   };
 
-  const handlePreset = (delayMinutes: number) => {
-    onChange(createQuickPlanTimeRange(new Date(), delayMinutes));
+  const handlePreset = (preset: PlanTimePreset) => {
+    onChange(createPresetPlanTimeRange(preset, new Date()));
     setOpen(false);
   };
 
   const handleCustom = () => {
-    if (!hasAnyPlanTime) onChange(createQuickPlanTimeRange(new Date(), 5));
+    if (!hasAnyPlanTime) onChange(createPresetPlanTimeRange(DEFAULT_PLAN_TIME_PRESET, new Date()));
     setIsCustomMode(true);
   };
 
@@ -238,13 +238,13 @@ const PlanTimeEditor: FC<{
           ) : (
             <>
               <p className="text-sm font-medium">{t("editor.plan-time.title")}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {PLAN_TIME_PRESETS.map((delayMinutes) => (
-                  <Button key={delayMinutes} variant="outline" size="sm" onClick={() => handlePreset(delayMinutes)}>
-                    {t(`editor.plan-time.after-${delayMinutes}m`)}
+              <div className="grid grid-cols-3 gap-2">
+                {PLAN_TIME_PRESETS.map((preset) => (
+                  <Button key={preset.id} variant="outline" size="sm" onClick={() => handlePreset(preset)}>
+                    {t(`editor.plan-time.${preset.id}` as Parameters<typeof t>[0])}
                   </Button>
                 ))}
-                <Button variant="outline" size="sm" onClick={handleCustom}>
+                <Button variant="outline" size="sm" className="col-span-3" onClick={handleCustom}>
                   {t("editor.plan-time.custom")}
                 </Button>
               </div>
