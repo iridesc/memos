@@ -1,33 +1,29 @@
-import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { CalendarDaysIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import MemoTags from "@/components/MemoTags";
+import { useSearchParams } from "react-router-dom";
+import MemoView from "@/components/MemoView";
+import PagedMemoList from "@/components/PagedMemoList";
+import { ScheduleDayDialog, ScheduleDayGrid } from "@/components/ScheduleCalendar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useInstance } from "@/contexts/InstanceContext";
 import { stringifyFilters } from "@/contexts/MemoFilterContext";
+import { buildMemoCreatorFilter } from "@/helpers/resource-names";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useNavigateTo from "@/hooks/useNavigateTo";
-import { useScheduleCalendar } from "@/hooks/useScheduleCalendar";
+import { useHasExpiredMemos, useScheduleCalendar } from "@/hooks/useScheduleCalendar";
 import i18n from "@/i18n";
-import {
-  addDays,
-  calendarDays,
-  calendarHeat,
-  dateKey,
-  groupScheduledMemos,
-  moveCalendar,
-  stripTagsFromPreview,
-} from "@/lib/schedule-calendar";
+import { addDays, calendarDays, calendarWeekDays, dateKey, groupScheduledMemos, moveCalendar, moveWeek } from "@/lib/schedule-calendar";
 import { cn } from "@/lib/utils";
 import Today from "@/pages/Today";
 import { Routes } from "@/router";
-import { State } from "@/types/proto/api/v1/common_pb";
+import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 
 const HEAT_CLASSES = ["bg-muted/40", "bg-primary/10", "bg-primary/25", "bg-primary/45", "bg-primary/75 text-primary-foreground"];
-type ScheduleView = "today" | "month";
+type ScheduleView = "past" | "today" | "week" | "month";
+
+const isScheduleView = (value: string | null): value is ScheduleView =>
+  value === "past" || value === "today" || value === "week" || value === "month";
 
 const Calendar = () => {
   const t = useTranslate();
@@ -35,35 +31,66 @@ const Calendar = () => {
   const { generalSetting } = useInstance();
   const [params, setParams] = useSearchParams();
   const viewParam = params.get("view");
-  const view: ScheduleView = viewParam === "month" ? "month" : "today";
+  const view: ScheduleView = isScheduleView(viewParam) ? viewParam : "today";
   const dateParam = params.get("date") || "";
   const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? new Date(`${dateParam}T00:00:00`) : new Date();
   const anchor = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   const weekStart = ((generalSetting.weekStartDayOffset % 7) + 7) % 7;
   const anchorKey = dateKey(anchor);
-  const days = useMemo(() => calendarDays(new Date(`${anchorKey}T00:00:00`), weekStart), [anchorKey, weekStart]);
+  const startOfToday = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  const monthDays = useMemo(() => calendarDays(new Date(`${anchorKey}T00:00:00`), weekStart), [anchorKey, weekStart]);
+  const weekDays = useMemo(() => calendarWeekDays(new Date(`${anchorKey}T00:00:00`), weekStart), [anchorKey, weekStart]);
+  const isGridView = view === "week" || view === "month";
+  const visibleDays = view === "week" ? weekDays : monthDays;
+
   const { data, isPending, isError, isFetching, error, refetch } = useScheduleCalendar(
     user?.name,
-    days[0],
-    addDays(days[days.length - 1], 1),
-    view !== "today",
+    visibleDays[0],
+    addDays(visibleDays[visibleDays.length - 1], 1),
+    isGridView,
   );
-  const groups = useMemo(() => groupScheduledMemos(data?.memos ?? [], days), [data, days]);
+  const groups = useMemo(() => groupScheduledMemos(data?.memos ?? [], visibleDays), [data, visibleDays]);
+
+  // The "past" tab only appears when there is something overdue to re-plan.
+  const { data: hasExpiredMemos } = useHasExpiredMemos(user?.name, startOfToday);
+  const showPastTab = view === "past" || hasExpiredMemos === true;
+
   const navigateTo = useNavigateTo();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const selectedMemos = selectedDate ? (groups.get(dateKey(selectedDate)) ?? []) : [];
   const locale = i18n.language;
-  const longDate = (date: Date) => date.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", weekday: "long" });
-  const today = dateKey(new Date());
-  const title = anchor.toLocaleDateString(locale, { year: "numeric", month: "long" });
+
+  const changeView = (next: ScheduleView) => {
+    setSelectedDate(null);
+    setParams(next === "week" || next === "month" ? { view: next, date: dateKey(new Date()) } : { view: next });
+  };
   const changePeriod = (date: Date) => {
     setSelectedDate(null);
-    setParams({ view: "month", date: dateKey(date) });
+    setParams({ view, date: dateKey(date) });
   };
   const listMemosByTag = (tag: string) => {
     setSelectedDate(null);
     navigateTo(`${Routes.HOME}?filter=${stringifyFilters([{ factor: "tagSearch", value: tag }])}`);
   };
+
+  const monthTitle = anchor.toLocaleDateString(locale, { year: "numeric", month: "long" });
+  const weekTitle = `${weekDays[0].toLocaleDateString(locale, { month: "numeric", day: "numeric" })} – ${weekDays[6].toLocaleDateString(
+    locale,
+    {
+      month: "numeric",
+      day: "numeric",
+    },
+  )}`;
+
+  const creatorFilter = buildMemoCreatorFilter(user?.name ?? "");
+  const expiredFilter = useMemo(() => {
+    const expired = `state == "NORMAL" && plan_end_ts < ${Math.floor(startOfToday.getTime() / 1000)}`;
+    return creatorFilter ? `(${expired}) && (${creatorFilter})` : expired;
+  }, [creatorFilter, startOfToday]);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 py-4 md:py-0">
@@ -76,42 +103,79 @@ const Calendar = () => {
           <p className="mt-1 text-sm text-muted-foreground">{t("schedule.description")}</p>
         </div>
         <div className="inline-flex rounded-lg border bg-muted/40 p-1" role="group" aria-label={t("schedule.view")}>
-          {(["today", "month"] as const).map((mode) => (
+          {showPastTab && (
             <Button
-              key={mode}
               size="sm"
-              variant={view === mode ? "secondary" : "ghost"}
-              aria-pressed={view === mode}
-              onClick={() => (mode === "today" ? setParams({ view: mode }) : changePeriod(anchor))}
+              variant={view === "past" ? "secondary" : "ghost"}
+              aria-pressed={view === "past"}
+              onClick={() => changeView("past")}
             >
-              {t(`schedule.${mode}`)}
+              {t("schedule.past")}
             </Button>
-          ))}
+          )}
+          <Button
+            size="sm"
+            variant={view === "today" ? "secondary" : "ghost"}
+            aria-pressed={view === "today"}
+            onClick={() => changeView("today")}
+          >
+            {t("schedule.today")}
+          </Button>
+          <Button
+            size="sm"
+            variant={view === "week" ? "secondary" : "ghost"}
+            aria-pressed={view === "week"}
+            onClick={() => changeView("week")}
+          >
+            {t("schedule.week")}
+          </Button>
+          <Button
+            size="sm"
+            variant={view === "month" ? "secondary" : "ghost"}
+            aria-pressed={view === "month"}
+            onClick={() => changeView("month")}
+          >
+            {t("schedule.month")}
+          </Button>
         </div>
       </div>
 
-      {view === "today" ? (
+      {view === "past" ? (
+        <PagedMemoList
+          renderer={(memo: Memo) => <MemoView key={`${memo.name}-${memo.updateTime}`} memo={memo} showVisibility showPinned compact />}
+          orderBy="plan_end_time asc"
+          filter={expiredFilter}
+          showFilters={false}
+          splitCompleted={false}
+          emptyMessage={t("schedule.past-empty")}
+        />
+      ) : view === "today" ? (
         <Today />
       ) : (
         <>
           <section className="overflow-hidden rounded-xl border bg-card" aria-label={t("schedule.title")} aria-busy={isFetching}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:p-4">
               <h2 className="text-base font-medium" aria-live="polite">
-                {title}
+                {view === "week" ? weekTitle : monthTitle}
               </h2>
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
                   variant="ghost"
                   aria-label={t("schedule.previous")}
-                  onClick={() => changePeriod(moveCalendar(anchor, -1))}
+                  onClick={() => changePeriod(view === "week" ? moveWeek(anchor, -1) : moveCalendar(anchor, -1))}
                 >
                   <ChevronLeftIcon className="size-4" />
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => changePeriod(new Date())}>
                   {t("common.today")}
                 </Button>
-                <Button size="icon" variant="ghost" aria-label={t("schedule.next")} onClick={() => changePeriod(moveCalendar(anchor, 1))}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t("schedule.next")}
+                  onClick={() => changePeriod(view === "week" ? moveWeek(anchor, 1) : moveCalendar(anchor, 1))}
+                >
                   <ChevronRightIcon className="size-4" />
                 </Button>
               </div>
@@ -131,48 +195,13 @@ const Calendar = () => {
               </p>
             )}
             <div className="p-2 sm:p-4">
-              <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-                {days.slice(0, 7).map((day) => (
-                  <span key={day.getDay()}>{day.toLocaleDateString(locale, { weekday: "short" })}</span>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                {days.map((day) => {
-                  const key = dateKey(day);
-                  const count = groups.get(key)?.length ?? 0;
-                  const ready = !isPending && !isError;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      disabled={!ready}
-                      onClick={() => setSelectedDate(day)}
-                      aria-label={`${longDate(day)}${ready ? `, ${t("schedule.count", { count })}` : ""}`}
-                      aria-current={key === today ? "date" : undefined}
-                      className={cn(
-                        "flex min-w-0 flex-col items-start justify-between rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait sm:p-3",
-                        "min-h-16 sm:min-h-24",
-                        HEAT_CLASSES[ready ? calendarHeat(count) : 0],
-                        day.getMonth() !== anchor.getMonth() && "opacity-45",
-                        key === today && "border-primary",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex size-6 items-center justify-center rounded-full text-xs sm:text-sm",
-                          key === today && "bg-primary text-primary-foreground",
-                        )}
-                      >
-                        {day.getDate()}
-                      </span>
-                      <span className="w-full truncate text-center text-xs tabular-nums sm:text-sm">
-                        {ready ? count : "—"}
-                        <span className="hidden sm:inline"> {ready && t("schedule.items")}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <ScheduleDayGrid
+                days={visibleDays}
+                groups={groups}
+                onSelectDay={setSelectedDate}
+                anchorMonth={view === "month" ? anchor.getMonth() : undefined}
+                ready={!isPending && !isError}
+              />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-xs text-muted-foreground">
               <span>{t("schedule.rule")}</span>
@@ -185,69 +214,14 @@ const Calendar = () => {
               </div>
             </div>
           </section>
-          <Dialog
-            open={!!selectedDate}
+          <ScheduleDayDialog
+            date={selectedDate}
+            memos={selectedMemos}
             onOpenChange={(open) => {
               if (!open) setSelectedDate(null);
             }}
-          >
-            <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{selectedDate && longDate(selectedDate)}</DialogTitle>
-                <DialogDescription>{t("schedule.count", { count: selectedMemos.length })}</DialogDescription>
-              </DialogHeader>
-              {selectedMemos.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">{t("schedule.empty")}</p>
-              ) : (
-                <ul className="space-y-2">
-                  {selectedMemos.map((memo) => {
-                    const preview = stripTagsFromPreview(memo.content, memo.tags);
-                    return (
-                      <li key={memo.name}>
-                        <div className="rounded-lg border transition-colors hover:bg-accent focus-within:outline-2 focus-within:outline-primary">
-                          <Link to={`/${memo.name}`} state={{ from: `/calendar?${params}` }} className="flex items-start gap-3 p-3">
-                            <span
-                              className={cn(
-                                "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border",
-                                memo.state === State.COMPLETED && "border-primary bg-primary/10 text-primary",
-                              )}
-                            >
-                              {memo.state === State.COMPLETED && <CheckIcon className="size-3" />}
-                              <span className="sr-only">
-                                {memo.state === State.COMPLETED ? t("common.completed") : t("schedule.planned")}
-                              </span>
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm font-medium">
-                                {preview || t("schedule.untitled")}
-                              </p>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {timestampDate(memo.planStartTime!).toLocaleString(locale, {
-                                  month: "numeric",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}{" "}
-                                –{" "}
-                                {timestampDate(memo.planEndTime!).toLocaleString(locale, {
-                                  month: "numeric",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                            <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                          </Link>
-                          <MemoTags tags={memo.tags} className="px-3 pb-3" onTagClick={listMemosByTag} />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </DialogContent>
-          </Dialog>
+            onTagClick={listMemosByTag}
+          />
         </>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
-import { addDays, calendarDays, calendarHeat, dateKey, groupScheduledMemos, moveCalendar, stripTagsFromPreview } from "@/lib/schedule-calendar";
+import { addDays, calendarDays, calendarHeat, calendarWeekDays, dateKey, groupScheduledMemos, moveCalendar, moveWeek, stripTagsFromPreview } from "@/lib/schedule-calendar";
 import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
 
 const date = (value: string) => new Date(`${value}T00:00:00`);
@@ -23,6 +23,19 @@ describe("schedule calendar dates", () => {
   it("steps through local dates across DST changes", () => {
     expect(dateKey(addDays(date("2026-03-08"), 1))).toBe("2026-03-09");
     expect(addDays(date("2026-11-01"), 1).getHours()).toBe(0);
+  });
+  it("builds the seven days of the week containing the anchor date", () => {
+    const days = calendarWeekDays(date("2026-11-09"), 0);
+    expect(days.map((day) => dateKey(day))).toEqual(["2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"]);
+  });
+  it("honours the configured first weekday of the week", () => {
+    const days = calendarWeekDays(date("2026-11-09"), 1);
+    expect(dateKey(days[0])).toBe("2026-11-09");
+    expect(dateKey(days.at(-1)!)).toBe("2026-11-15");
+  });
+  it("moves a week forward and backward by seven days", () => {
+    expect(dateKey(moveWeek(date("2026-11-09"), 1))).toBe("2026-11-16");
+    expect(dateKey(moveWeek(date("2026-11-09"), -1))).toBe("2026-11-02");
   });
 });
 

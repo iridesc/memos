@@ -12,15 +12,17 @@ const Today = () => {
   const user = useCurrentUser();
   const updateMemo = useUpdateMemo();
 
-  // Build today filter: show memos whose time range overlaps with today,
-  // plus expired memos (plan_end_ts before today) that need re-planning.
+  // Build today filter: show memos whose time range overlaps with today.
+  // Overdue memos (plan_end_ts before today) are not listed here — the
+  // calendar keeps them in the dedicated "past" view, where they can be
+  // re-planned instead of silently piling up on today's list.
   const todayFilter = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const startTs = Math.floor(startOfDay.getTime() / 1000);
     const endTs = Math.floor(endOfDay.getTime() / 1000);
-    return `(plan_start_ts < ${endTs} && plan_end_ts >= ${startTs}) || plan_end_ts < ${startTs}`;
+    return `plan_start_ts < ${endTs} && plan_end_ts >= ${startTs}`;
   }, []);
 
   const userFilter = useMemoFilters({

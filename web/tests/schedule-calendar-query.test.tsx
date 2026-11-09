@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { useScheduleCalendar } from "@/hooks/useScheduleCalendar";
+import { useHasExpiredMemos, useScheduleCalendar } from "@/hooks/useScheduleCalendar";
 
 const mocks = vi.hoisted(() => ({ listMemos: vi.fn() }));
 vi.mock("@/connect", () => ({ memoServiceClient: mocks }));
@@ -36,5 +36,24 @@ describe("calendar query", () => {
   it("does not query without an authenticated user", () => {
     renderHook(() => useScheduleCalendar(undefined, new Date(2026, 9, 1), new Date(2026, 10, 1)), { wrapper });
     expect(mocks.listMemos).not.toHaveBeenCalled();
+  });
+});
+
+describe("expired memo lookup", () => {
+  it("reports whether an overdue memo exists before the given day", async () => {
+    mocks.listMemos.mockResolvedValueOnce({ memos: [{ name: "memos/late" }], nextPageToken: "" });
+    const before = new Date(2026, 10, 9);
+    const { result } = renderHook(() => useHasExpiredMemos("users/alice", before), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBe(true);
+    const filter = mocks.listMemos.mock.calls[0][0].filter;
+    expect(filter).toContain('creator == "users/alice"');
+    expect(filter).toContain(`plan_end_ts < ${before.getTime() / 1000}`);
+  });
+  it("reports no overdue memo when the list is empty", async () => {
+    mocks.listMemos.mockResolvedValueOnce({ memos: [], nextPageToken: "" });
+    const { result } = renderHook(() => useHasExpiredMemos("users/alice", new Date(2026, 10, 9)), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBe(false);
   });
 });

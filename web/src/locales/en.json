@@ -4,7 +4,7 @@
     "title": "Calendar",
     "description": "Your planned days, at a glance.",
     "view": "Calendar view",
-    "today": "Day",
+    "today": "Today",
     "month": "Month",
     "previous": "Previous period",
     "next": "Next period",
@@ -19,7 +19,10 @@
     "more": "More",
     "empty": "No items planned for this day.",
     "planned": "Planned",
-    "untitled": "Untitled item"
+    "untitled": "Untitled item",
+    "past": "Past",
+    "week": "Week",
+    "past-empty": "No overdue items — everything is on plan."
   },
   "about": {
     "blogs": "Blogs",
@@ -248,7 +251,10 @@
       "after-30m": "In 30 minutes",
       "after-60m": "In 1 hour",
       "after-180m": "In 3 hours",
-      "custom": "Custom"
+      "custom": "Custom",
+      "tomorrow": "Tomorrow AM",
+      "next-week": "Next Monday",
+      "next-month": "1st of next month"
     },
     "audio-recorder": {
       "attachment-label": "Audio recording",

@@ -18,6 +18,27 @@ export function calendarDays(anchor: Date, weekStart: number): Date[] {
   return Array.from({ length }, (_, index) => addDays(start, index));
 }
 
+/**
+ * Build the seven local dates of the week that contains the anchor date.
+ *
+ * The week starts on the instance's configured first weekday, matching the
+ * column order of the month grid so both views line up.
+ */
+export function calendarWeekDays(anchor: Date, weekStart: number): Date[] {
+  const start = addDays(anchor, -((anchor.getDay() - weekStart + 7) % 7));
+  return Array.from({ length: 7 }, (_, index) => addDays(start, index));
+}
+
+/** Move the anchor by whole weeks, staying on the local date grid. */
+export function moveWeek(anchor: Date, direction: number): Date {
+  return addDays(anchor, direction * 7);
+}
+
+/** Format a date for the day dialog title, e.g. "2026年11月9日 星期一". */
+export function formatLongDate(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+}
+
 export function moveCalendar(anchor: Date, direction: number): Date {
   return new Date(anchor.getFullYear(), anchor.getMonth() + direction, 1);
 }

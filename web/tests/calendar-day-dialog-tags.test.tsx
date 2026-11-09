@@ -24,6 +24,9 @@ vi.mock("@/utils/i18n", () => ({
       "schedule.description": "Plans for the selected period",
       "schedule.view": "View",
       "schedule.today": "Today",
+      "schedule.week": "Week",
+      "schedule.past": "Past",
+      "schedule.past-empty": "Nothing overdue",
       "schedule.month": "Month",
       "schedule.previous": "Previous",
       "schedule.next": "Next",
@@ -55,6 +58,7 @@ vi.mock("@/hooks/useScheduleCalendar", () => ({
     error: null,
     refetch: vi.fn(),
   }),
+  useHasExpiredMemos: () => ({ data: false }),
 }));
 
 vi.mock("@/contexts/InstanceContext", () => ({
@@ -78,8 +82,7 @@ const renderCalendar = () => {
   return router;
 };
 
-const todayLabel = () =>
-  new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+const todayLabel = () => new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
 
 const plannedMemo = (content: string, tags: string[]) => {
   const now = new Date();

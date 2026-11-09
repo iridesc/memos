@@ -28,3 +28,25 @@ export function useScheduleCalendar(userName: string | undefined, start: Date, e
     },
   });
 }
+
+/**
+ * Whether the user still has memos whose plan time ended before the given day.
+ *
+ * The schedule view uses this to reveal the "past" tab only when there is
+ * something overdue to re-plan.
+ */
+export function useHasExpiredMemos(userName: string | undefined, before: Date, enabled = true) {
+  const beforeTs = Math.floor(before.getTime() / 1000);
+  const filter = `(${buildMemoCreatorFilter(userName || "")}) && state == "NORMAL" && plan_end_ts < ${beforeTs}`;
+  return useQuery({
+    queryKey: [...memoKeys.lists(), "calendar-expired", userName, beforeTs],
+    enabled: !!userName && enabled,
+    queryFn: async ({ signal }) => {
+      const page = await memoServiceClient.listMemos(
+        { filter, state: State.NORMAL, orderBy: "plan_end_time asc", pageSize: 1 },
+        { signal },
+      );
+      return page.memos.length > 0;
+    },
+  });
+}
