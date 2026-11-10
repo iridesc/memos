@@ -1,4 +1,4 @@
-import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import MemoView from "@/components/MemoView";
@@ -94,14 +94,7 @@ const Calendar = () => {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 py-4 md:py-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <CalendarDaysIcon className="size-5 text-primary" />
-            {t("schedule.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("schedule.description")}</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="inline-flex rounded-lg border bg-muted/40 p-1" role="group" aria-label={t("schedule.view")}>
           {showPastTab && (
             <Button
