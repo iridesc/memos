@@ -23,15 +23,13 @@ skill 随实例一起分发，不需要 clone 仓库：
 | 地址 | 内容 |
 |---|---|
 | `GET /skills/memodo.zip` | 整个 skill（`SKILL.md` + `references/` + `scripts/`），解压后是 `memodo/` 目录 |
-| `GET /skills/memodo/SKILL.md` | 主文件，浏览器可直接看 |
-| `GET /skills/memodo/references/…` | 单个参考文件 |
 
 ```bash
 curl -fLO https://<instance-host>/skills/memodo.zip
 unzip memodo-skill.zip -d ~/.claude/skills     # 得到 ~/.claude/skills/memodo/
 ```
 
-解压目标写你的客户端实际扫描的技能目录（Claude Code 是 `~/.claude/skills/`，pi 是 `~/.agents/skills/` 或 `~/.pi/agent/skills/`）。这些接口是公开的，不需要 token —— skill 里只有使用说明，没有用户数据。
+解压目标写你的客户端实际扫描的技能目录（Claude Code 是 `~/.claude/skills/`，pi 是 `~/.agents/skills/` 或 `~/.pi/agent/skills/`）。这个接口是公开的，不需要 token —— skill 里只有使用说明，没有用户数据。
 
 ### 连接 MCP
 

@@ -7,6 +7,7 @@ import {
   LibraryIcon,
   type LucideIcon,
   MailIcon,
+  PlugIcon,
   Settings2Icon,
   TagsIcon,
   UserIcon,
@@ -16,6 +17,7 @@ import {
 import { type ComponentType } from "react";
 import AISection from "@/components/Settings/AISection";
 import InstanceSection from "@/components/Settings/InstanceSection";
+import IntegrationSection from "@/components/Settings/IntegrationSection";
 import MemberSection from "@/components/Settings/MemberSection";
 import MemoRelatedSettings from "@/components/Settings/MemoRelatedSettings";
 import MyAccountSection from "@/components/Settings/MyAccountSection";
@@ -40,6 +42,7 @@ export type SettingSectionKey =
   | "sso"
   | "tags"
   | "ai"
+  | "integration"
   | "resource-stats";
 
 type SettingSectionScope = "basic" | "admin";
@@ -134,6 +137,13 @@ export const SETTINGS_SECTIONS: SettingSectionDefinition[] = [
     icon: HeartHandshakeIcon,
     component: AISection,
     preloadSettingKeys: [InstanceSetting_Key.AI],
+  },
+  {
+    key: "integration",
+    scope: "basic",
+    labelKey: "setting.integration.label",
+    icon: PlugIcon,
+    component: IntegrationSection,
   },
   {
     key: "resource-stats",

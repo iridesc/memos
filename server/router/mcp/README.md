@@ -188,15 +188,13 @@ The repository ships an agent skill under `skills/` that documents how to use th
 | Endpoint | Content |
 |---|---|
 | `GET /skills/memodo.zip` | Whole skill directory, top-level folder `memodo/` |
-| `GET /skills/memodo/SKILL.md` | Skill entrypoint |
-| `GET /skills/memodo/references/…` | Individual reference files |
 
 ```bash
 curl -fLO https://<instance-host>/skills/memodo.zip
 unzip memodo-skill.zip -d ~/.claude/skills
 ```
 
-The archive is byte-stable across requests (fixed entry timestamps) and the routes are public, since skills contain instructions only — no user data. Source lives in `skills/memodo/`; the Go wrapper is `skills/embed.go` and the HTTP routes are in `server/router/skills`.
+The archive is byte-stable across requests (fixed entry timestamps) and the route is public, since skills contain instructions only — no user data. It is the only download endpoint: the skill ships as a directory, so clients unpack the archive instead of fetching single files. Source lives in `skills/memodo/`; the Go wrapper is `skills/embed.go` and the HTTP routes are in `server/router/skills`.
 
 ## Package Structure
 

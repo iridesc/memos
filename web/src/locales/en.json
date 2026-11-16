@@ -561,6 +561,26 @@
       "transcription-title": "Transcription",
       "transcription-warning-no-key": "The selected provider has no API key set. Edit the integration above to add one."
     },
+    "integration": {
+      "agent-skill-description": "The memodo skill ships with this instance and documents how to call the MCP tools correctly and follow the instance conventions.",
+      "agent-skill-title": "Agent skill",
+      "copied": "Copied to clipboard",
+      "copy": "Copy",
+      "label": "Integrations",
+      "mcp-config-claude": "Claude Code",
+      "mcp-config-json": "Generic JSON (Cursor and friends)",
+      "mcp-description": "The MCP endpoint exposes the memo tools over Streamable HTTP; write operations require an access token.",
+      "mcp-endpoint": "Endpoint",
+      "mcp-endpoint-hint": "Read-only mode: /mcp/readonly. Trimmed toolset: /mcp/x/memos,tags.",
+      "mcp-title": "MCP access",
+      "mcp-token": "Access token",
+      "mcp-token-action": "Open access tokens",
+      "mcp-token-description": "Create a long-lived token under My Account → Access Tokens and send it as Authorization: Bearer <PAT>.",
+      "skill-download": "Download memodo-skill.zip",
+      "skill-download-hint": "The archive holds SKILL.md, references/ and scripts/; extracting it yields a memodo/ directory.",
+      "skill-install-description": "Extract into the skills folder your client scans: ~/.claude/skills/ for Claude Code, ~/.agents/skills/ or ~/.pi/agent/skills/ for pi.",
+      "skill-install-title": "Install location"
+    },
     "instance": {
       "access-description": "Control sign-up, authentication, profile editing, and calendar defaults for this instance.",
       "access-title": "Access and policies",

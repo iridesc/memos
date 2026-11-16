@@ -482,6 +482,26 @@
       "provider-type": "Provider 类型",
       "providers": "Providers"
     },
+    "integration": {
+      "agent-skill-description": "memodo skill 随实例一起分发，说明如何正确调用 MCP 工具、遵守本实例的约定。",
+      "agent-skill-title": "Agent Skill",
+      "copied": "已复制到剪贴板",
+      "copy": "复制",
+      "label": "集成",
+      "mcp-config-claude": "Claude Code",
+      "mcp-config-json": "通用 JSON（Cursor 等）",
+      "mcp-description": "MCP 端点以 Streamable HTTP 暴露笔记工具，写操作需要访问令牌。",
+      "mcp-endpoint": "服务端点",
+      "mcp-endpoint-hint": "只读模式：/mcp/readonly；按工具集裁剪：/mcp/x/memos,tags。",
+      "mcp-title": "MCP 接入",
+      "mcp-token": "访问令牌",
+      "mcp-token-action": "前往访问令牌",
+      "mcp-token-description": "在「我的账号 → 访问令牌」创建长期令牌，并作为 Authorization: Bearer <PAT> 发送。",
+      "skill-download": "下载 memodo-skill.zip",
+      "skill-download-hint": "压缩包内含 SKILL.md、references/ 与 scripts/，解压后得到 memodo/ 目录。",
+      "skill-install-description": "解压到客户端实际扫描的技能目录：Claude Code 为 ~/.claude/skills/，pi 为 ~/.agents/skills/ 或 ~/.pi/agent/skills/。",
+      "skill-install-title": "安装位置"
+    },
     "preference": {
       "appearance-description": "选择当前账号使用的界面语言和外观主题。",
       "appearance-title": "外观",

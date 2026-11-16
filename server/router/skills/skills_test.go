@@ -75,82 +75,22 @@ func TestServeZipIsDeterministic(t *testing.T) {
 	require.Equal(t, firstBody, secondBody)
 }
 
-func TestServeSkillFiles(t *testing.T) {
+func TestOnlyTheArchiveIsServed(t *testing.T) {
 	e := newTestServer(t)
 
-	t.Run("skill entrypoint", func(t *testing.T) {
-		resp := doRequest(t, e, "GET", "/skills/memodo/SKILL.md")
-		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		require.Contains(t, resp.Header.Get("Content-Type"), "text/markdown")
-
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Contains(t, string(body), "name: memodo")
-	})
-
-	t.Run("reference file", func(t *testing.T) {
-		resp := doRequest(t, e, "GET", "/skills/memodo/references/mcp-tools.md")
-		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-	})
-
-	t.Run("script file", func(t *testing.T) {
-		resp := doRequest(t, e, "GET", "/skills/memodo/scripts/audit_tags.py")
-		defer resp.Body.Close()
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		require.Contains(t, resp.Header.Get("Content-Type"), "text/x-python")
-	})
-
-	t.Run("directory redirects to SKILL.md", func(t *testing.T) {
-		resp := doRequest(t, e, "GET", "/skills/memodo")
-		defer resp.Body.Close()
-		require.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
-		require.Equal(t, "/skills/memodo/SKILL.md", resp.Header.Get("Location"))
-	})
-}
-
-func TestServeSkillFilesRejectsTraversal(t *testing.T) {
-	e := newTestServer(t)
-
+	// The skill ships as a directory, so the archive is the only download:
+	// single files and the old directory redirect are gone.
 	for _, target := range []string{
+		"/skills/memodo",
+		"/skills/memodo/SKILL.md",
+		"/skills/memodo/references/mcp-tools.md",
+		"/skills/memodo/scripts/audit_tags.py",
+		"/skills/memodo/nope.md",
 		"/skills/memodo/../../server/server.go",
 		"/skills/memodo/%2e%2e/%2e%2e/go.mod",
 	} {
 		resp := doRequest(t, e, "GET", target)
 		defer resp.Body.Close()
-		require.NotEqual(t, http.StatusOK, resp.StatusCode, "target %q must not be served", target)
-	}
-}
-
-func TestServeSkillFileNotFound(t *testing.T) {
-	e := newTestServer(t)
-	resp := doRequest(t, e, "GET", "/skills/memodo/nope.md")
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode)
-}
-
-func TestCleanSkillPath(t *testing.T) {
-	cases := map[string]string{
-		"SKILL.md":                     "SKILL.md",
-		"/SKILL.md":                    "SKILL.md",
-		"references/tag-audit.md":      "references/tag-audit.md",
-		"./references/tag-audit.md":    "references/tag-audit.md",
-		"references/../SKILL.md":       "SKILL.md",
-		"references//tag-audit.md":     "references/tag-audit.md",
-		"scripts/audit_tags.py":        "scripts/audit_tags.py",
-		"references/mcp-tools.md/":     "references/mcp-tools.md",
-		"references/./tag-audit.md/..": "references",
-		"..":                           "",
-		"../..":                        "",
-	}
-	for input, want := range cases {
-		got, err := cleanSkillPath(input)
-		if want == "" {
-			require.Error(t, err, "input %q should be rejected", input)
-			continue
-		}
-		require.NoError(t, err, "input %q", input)
-		require.Equal(t, want, got, "input %q", input)
+		require.Equal(t, http.StatusNotFound, resp.StatusCode, "target %q must not be served", target)
 	}
 }
