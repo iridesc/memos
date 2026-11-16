@@ -1,8 +1,21 @@
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { createPresetPlanTimeRange, DEFAULT_PLAN_TIME_PRESET, PLAN_TIME_PRESETS, type PlanTimePreset } from "@/lib/plan-time";
+import i18n from "@/i18n";
+import {
+  createDayPlanTimeRange,
+  createPresetPlanTimeRange,
+  DEFAULT_PLAN_TIME_PRESET,
+  isSameDay,
+  monthDaysOf,
+  monthLeadingBlanks,
+  PLAN_TIME_RELATIVE_PRESETS,
+  PLAN_TIME_TOMORROW_PRESET,
+  type PlanTimePickerScope,
+  type PlanTimePreset,
+  weekDaysOf,
+} from "@/lib/plan-time";
 import { useTranslate } from "@/utils/i18n";
 import { validationService } from "../services";
 import { useEditorContext } from "../state";
@@ -10,7 +23,7 @@ import InsertMenu from "../Toolbar/InsertMenu";
 import VisibilitySelector from "../Toolbar/VisibilitySelector";
 import type { EditorToolbarProps } from "../types";
 
-const PlanTimeEditor: FC<{
+export const PlanTimeEditor: FC<{
   planStartTime?: Date;
   planEndTime?: Date;
   onChange: (times: { planStartTime?: Date; planEndTime?: Date }) => void;
@@ -18,11 +31,16 @@ const PlanTimeEditor: FC<{
   const t = useTranslate();
   const [open, setOpen] = useState(false);
   const [isCustomMode, setIsCustomMode] = useState(false);
+  const [pickerScope, setPickerScope] = useState<PlanTimePickerScope | null>(null);
+  const [monthCursor, setMonthCursor] = useState(() => new Date());
   const hasPlanTime = !!(planStartTime && planEndTime);
   const hasAnyPlanTime = !!(planStartTime || planEndTime);
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) setIsCustomMode(false);
+    if (!newOpen) {
+      setIsCustomMode(false);
+      setPickerScope(null);
+    }
     setOpen(newOpen);
   };
 
@@ -31,8 +49,15 @@ const PlanTimeEditor: FC<{
     setOpen(false);
   };
 
+  const handlePickDay = (day: Date) => {
+    onChange(createDayPlanTimeRange(day, new Date()));
+    setPickerScope(null);
+    setOpen(false);
+  };
+
   const handleCustom = () => {
     if (!hasAnyPlanTime) onChange(createPresetPlanTimeRange(DEFAULT_PLAN_TIME_PRESET, new Date()));
+    setPickerScope(null);
     setIsCustomMode(true);
   };
 
@@ -54,15 +79,19 @@ const PlanTimeEditor: FC<{
   const minDate = formatDate(now);
   const startDate = formatDate(planStartTime);
   const endDate = formatDate(planEndTime);
-  const isSameDay = !!(planStartTime && planEndTime && startDate === endDate);
+  const sameDayRange = !!(planStartTime && planEndTime && startDate === endDate);
+
+  const locale = i18n.language;
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekdayLabels = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: "short" }));
 
   // Start time constraints: if today, restrict to >= now
   const startMinHour = startDate === minDate ? now.getHours() : 0;
   const startMinMinute = startDate === minDate ? Math.ceil(now.getMinutes() / 5) * 5 : 0;
 
   // End time constraints: if same day as start, restrict to >= start time
-  const endMinHour = isSameDay ? getHour(planStartTime) : 0;
-  const endMinMinute = isSameDay ? getMinute(planStartTime) : 0;
+  const endMinHour = sameDayRange ? getHour(planStartTime) : 0;
+  const endMinMinute = sameDayRange ? getMinute(planStartTime) : 0;
 
   const filteredHours = (min: number) => allHours.filter((h) => h >= min);
   const filteredMinutes = (min: number) => allMinutes.filter((m) => m >= min);
@@ -145,7 +174,7 @@ const PlanTimeEditor: FC<{
           {hasPlanTime && <span className="ml-1 truncate text-xs">{displayRange(planStartTime, planEndTime)}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[336px] max-w-[calc(100vw-2rem)]">
+      <PopoverContent align="end" className={`max-w-[calc(100vw-2rem)] ${pickerScope === "month" ? "w-[380px]" : "w-[336px]"}`}>
         <div className="flex flex-col gap-3 p-1">
           {isCustomMode ? (
             <>
@@ -214,7 +243,7 @@ const PlanTimeEditor: FC<{
                     onChange={(e) => handleEndTimeChange("m", Number(e.target.value))}
                     disabled={!planStartTime}
                   >
-                    {filteredMinutes(isSameDay && planEndTime?.getHours() === endMinHour ? endMinMinute : 0).map((m) => (
+                    {filteredMinutes(sameDayRange && planEndTime?.getHours() === endMinHour ? endMinMinute : 0).map((m) => (
                       <option key={m} value={m}>
                         {pad(m)}
                       </option>
@@ -239,15 +268,92 @@ const PlanTimeEditor: FC<{
             <>
               <p className="text-sm font-medium">{t("editor.plan-time.title")}</p>
               <div className="grid grid-cols-3 gap-2">
-                {PLAN_TIME_PRESETS.map((preset) => (
+                {PLAN_TIME_RELATIVE_PRESETS.map((preset) => (
                   <Button key={preset.id} variant="outline" size="sm" onClick={() => handlePreset(preset)}>
                     {t(`editor.plan-time.${preset.id}` as Parameters<typeof t>[0])}
                   </Button>
                 ))}
-                <Button variant="outline" size="sm" className="col-span-3" onClick={handleCustom}>
-                  {t("editor.plan-time.custom")}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="outline" size="sm" onClick={() => handlePreset(PLAN_TIME_TOMORROW_PRESET)}>
+                  {t("editor.plan-time.tomorrow")}
+                </Button>
+                <Button variant={pickerScope === "week" ? "secondary" : "outline"} size="sm" onClick={() => setPickerScope("week")}>
+                  {t("editor.plan-time.this-week")}
+                </Button>
+                <Button variant={pickerScope === "month" ? "secondary" : "outline"} size="sm" onClick={() => setPickerScope("month")}>
+                  {t("editor.plan-time.this-month")}
                 </Button>
               </div>
+              <Button variant="outline" size="sm" className="w-full" onClick={handleCustom}>
+                {t("editor.plan-time.custom")}
+              </Button>
+              {pickerScope === "week" && (
+                <div className="grid grid-cols-7 gap-1">
+                  {weekDaysOf(now).map((day) => (
+                    <Button
+                      key={day.toISOString()}
+                      variant={isSameDay(day, now) ? "secondary" : "outline"}
+                      size="sm"
+                      className="h-auto flex-col gap-0 px-0 py-1"
+                      disabled={day < startOfToday}
+                      onClick={() => handlePickDay(day)}
+                    >
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        {day.toLocaleDateString(locale, { weekday: "short" })}
+                      </span>
+                      <span className="text-sm">{day.getDate()}</span>
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {pickerScope === "month" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={t("editor.plan-time.previous-month")}
+                      onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}
+                    >
+                      <ChevronLeftIcon className="size-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                      {monthCursor.toLocaleDateString(locale, { year: "numeric", month: "long" })}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={t("editor.plan-time.next-month")}
+                      onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}
+                    >
+                      <ChevronRightIcon className="size-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {weekdayLabels.map((label) => (
+                      <span key={label} className="text-center text-[10px] text-muted-foreground">
+                        {label}
+                      </span>
+                    ))}
+                    {Array.from({ length: monthLeadingBlanks(monthCursor) }, (_, i) => (
+                      <span key={`blank-${i}`} />
+                    ))}
+                    {monthDaysOf(monthCursor).map((day) => (
+                      <Button
+                        key={day.toISOString()}
+                        variant={isSameDay(day, now) ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-auto px-0 py-1"
+                        disabled={day < startOfToday}
+                        onClick={() => handlePickDay(day)}
+                      >
+                        {day.getDate()}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {hasAnyPlanTime && (
                 <Button
                   variant="ghost"

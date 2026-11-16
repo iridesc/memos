@@ -213,9 +213,11 @@
       "after-60m": "1 小时后",
       "after-180m": "3 小时后",
       "custom": "自定义",
-      "tomorrow": "明天上午",
-      "next-week": "下周一",
-      "next-month": "下月 1 号"
+      "tomorrow": "明天",
+      "this-week": "本周",
+      "this-month": "本月",
+      "previous-month": "上个月",
+      "next-month": "下个月"
     },
     "insert-menu": {
       "add-location": "添加位置",

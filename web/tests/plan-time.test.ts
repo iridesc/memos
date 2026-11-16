@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createPresetPlanTimeRange, createQuickPlanTimeRange, PLAN_TIME_PRESETS } from "@/lib/plan-time";
+import {
+  createDayPlanTimeRange,
+  createPresetPlanTimeRange,
+  createQuickPlanTimeRange,
+  monthDaysOf,
+  monthLeadingBlanks,
+  PLAN_TIME_PRESETS,
+  weekDaysOf,
+} from "@/lib/plan-time";
 import { describePlanWhen, formatRelativePlanTime } from "@/lib/time";
 
 describe("quick plan time ranges", () => {
@@ -26,15 +34,8 @@ const preset = (id: string) => {
 const NOW = new Date(2026, 10, 4, 15, 0, 0);
 
 describe("plan time presets", () => {
-  it("offers three relative and three calendar presets", () => {
-    expect(PLAN_TIME_PRESETS.map((item) => item.id)).toEqual([
-      "after-15m",
-      "after-60m",
-      "after-180m",
-      "tomorrow",
-      "next-week",
-      "next-month",
-    ]);
+  it("offers three relative presets and the tomorrow preset", () => {
+    expect(PLAN_TIME_PRESETS.map((item) => item.id)).toEqual(["after-15m", "after-60m", "after-180m", "tomorrow"]);
   });
 
   it("keeps relative presets anchored to now and ending that day", () => {
@@ -55,24 +56,35 @@ describe("plan time presets", () => {
     expect(r.planEndTime).toEqual(new Date(2026, 10, 5, 23, 59, 59, 999));
   });
 
-  it("points next week at the coming Monday", () => {
-    // Wednesday -> the following Monday, five days out.
-    expect(createPresetPlanTimeRange(preset("next-week"), NOW).planStartTime).toEqual(new Date(2026, 10, 9, 9, 0, 0, 0));
-    // Sunday -> the very next day.
-    expect(createPresetPlanTimeRange(preset("next-week"), new Date(2026, 10, 8, 10, 0, 0)).planStartTime).toEqual(
-      new Date(2026, 10, 9, 9, 0, 0, 0),
-    );
-    // Monday -> a full week out, never today.
-    expect(createPresetPlanTimeRange(preset("next-week"), new Date(2026, 10, 9, 10, 0, 0)).planStartTime).toEqual(
-      new Date(2026, 10, 16, 9, 0, 0, 0),
-    );
+  it("lists the seven days of the week that contains the given day", () => {
+    // Wednesday -> Monday through Sunday.
+    expect(weekDaysOf(NOW).map((day) => day.getDate())).toEqual([2, 3, 4, 5, 6, 7, 8]);
+    // Sunday still belongs to the week that started on the previous Monday.
+    expect(weekDaysOf(new Date(2026, 10, 8, 10, 0, 0)).map((day) => day.getDate())).toEqual([2, 3, 4, 5, 6, 7, 8]);
+    // Monday -> the week that starts on that Monday.
+    expect(weekDaysOf(new Date(2026, 10, 9, 10, 0, 0)).map((day) => day.getDate())).toEqual([9, 10, 11, 12, 13, 14, 15]);
   });
 
-  it("points next month at the 1st and rolls over the year", () => {
-    expect(createPresetPlanTimeRange(preset("next-month"), NOW).planStartTime).toEqual(new Date(2026, 11, 1, 9, 0, 0, 0));
-    expect(createPresetPlanTimeRange(preset("next-month"), new Date(2026, 11, 15, 10, 0, 0)).planStartTime).toEqual(
-      new Date(2027, 0, 1, 9, 0, 0, 0),
-    );
+  it("lists every day of the month and its leading blanks", () => {
+    const days = monthDaysOf(new Date(2026, 10, 15, 10, 0, 0));
+    expect(days).toHaveLength(30);
+    expect(days[0]).toEqual(new Date(2026, 10, 1));
+    expect(days[29]).toEqual(new Date(2026, 10, 30));
+    // 2026-11-01 is a Sunday, so a Monday-first grid leaves six blank cells.
+    expect(monthLeadingBlanks(new Date(2026, 10, 15, 10, 0, 0))).toBe(6);
+    expect(monthDaysOf(new Date(2026, 11, 15, 10, 0, 0))).toHaveLength(31);
+  });
+
+  it("plans a picked day from 09:00 until the end of that day", () => {
+    const r = createDayPlanTimeRange(new Date(2026, 10, 9), NOW);
+    expect(r.planStartTime).toEqual(new Date(2026, 10, 9, 9, 0, 0, 0));
+    expect(r.planEndTime).toEqual(new Date(2026, 10, 9, 23, 59, 59, 999));
+  });
+
+  it("plans the current day from now so it never starts in the past", () => {
+    const r = createDayPlanTimeRange(new Date(2026, 10, 4), NOW);
+    expect(r.planStartTime).toEqual(NOW);
+    expect(r.planEndTime).toEqual(new Date(2026, 10, 4, 23, 59, 59, 999));
   });
 
   it("keeps every preset inside a single calendar day", () => {

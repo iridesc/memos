@@ -252,9 +252,11 @@
       "after-60m": "In 1 hour",
       "after-180m": "In 3 hours",
       "custom": "Custom",
-      "tomorrow": "Tomorrow AM",
-      "next-week": "Next Monday",
-      "next-month": "1st of next month"
+      "tomorrow": "Tomorrow",
+      "this-week": "This week",
+      "this-month": "This month",
+      "previous-month": "Previous month",
+      "next-month": "Next month"
     },
     "audio-recorder": {
       "attachment-label": "Audio recording",

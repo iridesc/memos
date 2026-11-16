@@ -23,8 +23,8 @@ describe("plan time preset labels", () => {
     expect(dict["after-15m"]).toBe("15 分钟后");
     expect(dict["after-60m"]).toBe("1 小时后");
     expect(dict["after-180m"]).toBe("3 小时后");
-    expect(dict["tomorrow"]).toBe("明天上午");
-    expect(dict["next-week"]).toBe("下周一");
-    expect(dict["next-month"]).toBe("下月 1 号");
+    expect(dict["tomorrow"]).toBe("明天");
+    expect(dict["this-week"]).toBe("本周");
+    expect(dict["this-month"]).toBe("本月");
   });
 });
