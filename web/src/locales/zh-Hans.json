@@ -21,7 +21,12 @@
     "untitled": "未命名事项",
     "past": "过去",
     "week": "本周",
-    "past-empty": "没有逾期待办，一切都在计划内。"
+    "past-empty": "没有逾期待办，一切都在计划内。",
+    "all-items": "全部事项",
+    "clear-filter": "取消筛选",
+    "day-empty": "这一天没有安排事项。",
+    "period-empty": "这段时间没有安排事项。",
+    "week-heading": "{{month}}第{{index}}周"
   },
   "about": {
     "blogs": "博客",

@@ -39,6 +39,21 @@ export function formatLongDate(date: Date, locale: string): string {
   return date.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", weekday: "long" });
 }
 
+/** Format a day heading for the period list, e.g. "11月16日 周一" or "11/16 Mon". */
+export function formatDayHeading(date: Date, locale: string): string {
+  const chinese = locale.toLowerCase().startsWith("zh");
+  const day = date.toLocaleDateString(locale, chinese ? { month: "long", day: "numeric" } : { month: "numeric", day: "numeric" });
+  return `${day} ${date.toLocaleDateString(locale, { weekday: "short" })}`;
+}
+
+/** Format the month a period belongs to, e.g. "11月" or "November". */
+export function formatMonthLabel(date: Date, locale: string): string {
+  if (locale.toLowerCase().startsWith("zh")) {
+    return `${date.getMonth() + 1}月`;
+  }
+  return date.toLocaleDateString(locale, { month: "long" });
+}
+
 export function moveCalendar(anchor: Date, direction: number): Date {
   return new Date(anchor.getFullYear(), anchor.getMonth() + direction, 1);
 }

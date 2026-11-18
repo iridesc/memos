@@ -12,6 +12,8 @@ interface Props {
   /** Memos grouped by local date key. */
   groups: Map<string, Memo[]>;
   onSelectDay: (day: Date) => void;
+  /** Key of the day the list below is filtered to; the cell is highlighted. */
+  selectedKey?: string | null;
   /** When set, days outside this month are dimmed (month grid only). */
   anchorMonth?: number;
   /** False while the counts are still loading. */
@@ -24,7 +26,7 @@ interface Props {
  * Each cell shows the day number plus the number of memos planned for that
  * day, tinted by workload. Clicking a cell opens the day's item list.
  */
-const ScheduleDayGrid = ({ days, groups, onSelectDay, anchorMonth, ready }: Props) => {
+const ScheduleDayGrid = ({ days, groups, onSelectDay, selectedKey, anchorMonth, ready }: Props) => {
   const t = useTranslate();
   const locale = i18n.language;
   const today = dateKey(new Date());
@@ -48,12 +50,14 @@ const ScheduleDayGrid = ({ days, groups, onSelectDay, anchorMonth, ready }: Prop
               onClick={() => onSelectDay(day)}
               aria-label={`${formatLongDate(day, locale)}${ready ? `, ${t("schedule.count", { count })}` : ""}`}
               aria-current={key === today ? "date" : undefined}
+              aria-pressed={key === selectedKey}
               className={cn(
                 "flex min-w-0 flex-col items-start justify-between rounded-lg border border-transparent p-1.5 text-left transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait sm:p-3",
                 "min-h-16 sm:min-h-24",
                 HEAT_CLASSES[ready ? calendarHeat(count) : 0],
                 anchorMonth !== undefined && day.getMonth() !== anchorMonth && "opacity-45",
                 key === today && "border-primary",
+                selectedKey === key && "ring-2 ring-primary ring-offset-1 ring-offset-card",
               )}
             >
               <span

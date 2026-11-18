@@ -22,7 +22,12 @@
     "untitled": "Untitled item",
     "past": "Past",
     "week": "Week",
-    "past-empty": "No overdue items — everything is on plan."
+    "past-empty": "No overdue items — everything is on plan.",
+    "all-items": "All items",
+    "clear-filter": "Clear filter",
+    "day-empty": "Nothing planned for this day.",
+    "period-empty": "Nothing planned for this period.",
+    "week-heading": "Week {{index}} of {{month}}"
   },
   "about": {
     "blogs": "Blogs",

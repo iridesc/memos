@@ -3,19 +3,16 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
-import { ScheduleDayDialog, ScheduleDayGrid } from "@/components/ScheduleCalendar";
+import { ScheduleDayGrid, SchedulePeriodList } from "@/components/ScheduleCalendar";
 import { Button } from "@/components/ui/button";
 import { useInstance } from "@/contexts/InstanceContext";
-import { stringifyFilters } from "@/contexts/MemoFilterContext";
 import { buildMemoCreatorFilter } from "@/helpers/resource-names";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import useNavigateTo from "@/hooks/useNavigateTo";
 import { useHasExpiredMemos, useScheduleCalendar } from "@/hooks/useScheduleCalendar";
 import i18n from "@/i18n";
 import { addDays, calendarDays, calendarWeekDays, dateKey, groupScheduledMemos, moveCalendar, moveWeek } from "@/lib/schedule-calendar";
 import { cn } from "@/lib/utils";
 import Today from "@/pages/Today";
-import { Routes } from "@/router";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 
@@ -59,24 +56,23 @@ const Calendar = () => {
   const { data: hasExpiredMemos } = useHasExpiredMemos(user?.name, startOfToday);
   const showPastTab = view === "past" || hasExpiredMemos === true;
 
-  const navigateTo = useNavigateTo();
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const selectedMemos = selectedDate ? (groups.get(dateKey(selectedDate)) ?? []) : [];
+  // Selecting a day in the grid narrows the list below to that day; clicking the
+  // same day again clears the filter.
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const toggleDay = (day: Date) => {
+    const key = dateKey(day);
+    setSelectedDayKey((prev) => (prev === key ? null : key));
+  };
   const locale = i18n.language;
 
   const changeView = (next: ScheduleView) => {
-    setSelectedDate(null);
+    setSelectedDayKey(null);
     setParams(next === "week" || next === "month" ? { view: next, date: dateKey(new Date()) } : { view: next });
   };
   const changePeriod = (date: Date) => {
-    setSelectedDate(null);
+    setSelectedDayKey(null);
     setParams({ view, date: dateKey(date) });
   };
-  const listMemosByTag = (tag: string) => {
-    setSelectedDate(null);
-    navigateTo(`${Routes.HOME}?filter=${stringifyFilters([{ factor: "tagSearch", value: tag }])}`);
-  };
-
   const monthTitle = anchor.toLocaleDateString(locale, { year: "numeric", month: "long" });
   const weekTitle = `${weekDays[0].toLocaleDateString(locale, { month: "numeric", day: "numeric" })} – ${weekDays[6].toLocaleDateString(
     locale,
@@ -191,7 +187,8 @@ const Calendar = () => {
               <ScheduleDayGrid
                 days={visibleDays}
                 groups={groups}
-                onSelectDay={setSelectedDate}
+                onSelectDay={toggleDay}
+                selectedKey={selectedDayKey}
                 anchorMonth={view === "month" ? anchor.getMonth() : undefined}
                 ready={!isPending && !isError}
               />
@@ -207,14 +204,29 @@ const Calendar = () => {
               </div>
             </div>
           </section>
-          <ScheduleDayDialog
-            date={selectedDate}
-            memos={selectedMemos}
-            onOpenChange={(open) => {
-              if (!open) setSelectedDate(null);
-            }}
-            onTagClick={listMemosByTag}
-          />
+          <section className="space-y-4 rounded-xl border bg-card p-4 sm:p-6" aria-label={t("schedule.all-items")}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-medium">{t("schedule.all-items")}</h2>
+              {selectedDayKey && (
+                <Button size="sm" variant="outline" onClick={() => setSelectedDayKey(null)}>
+                  {t("schedule.clear-filter")}
+                </Button>
+              )}
+            </div>
+            {isPending ? (
+              <p className="py-6 text-center text-sm text-muted-foreground" role="status">
+                {t("schedule.loading")}
+              </p>
+            ) : (
+              <SchedulePeriodList
+                memos={data?.memos ?? []}
+                days={visibleDays}
+                mode={view === "week" ? "week" : "month"}
+                anchorMonth={view === "month" ? anchor.getMonth() : undefined}
+                selectedDayKey={selectedDayKey}
+              />
+            )}
+          </section>
         </>
       )}
     </div>
