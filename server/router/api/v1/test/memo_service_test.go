@@ -863,3 +863,110 @@ func TestUpdateMemoStateTimestamps(t *testing.T) {
 	require.NotNil(t, setState(apiv1.State_COMPLETED).CompletedTime)
 	require.Nil(t, setState(apiv1.State_NORMAL).CompletedTime)
 }
+
+// TestUpdateMemoStateLocks verifies the state-based write locks:
+// an archived memo is a frozen snapshot, a completed memo has a frozen timeline.
+func TestUpdateMemoStateLocks(t *testing.T) {
+	ctx := context.Background()
+
+	ts := NewTestService(t)
+	defer ts.Cleanup()
+
+	user, err := ts.CreateRegularUser(ctx, "test-user-state-locks")
+	require.NoError(t, err)
+	userCtx := ts.CreateUserContext(ctx, user.ID)
+
+	newMemo := func(content string) *apiv1.Memo {
+		memo, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
+			Memo: &apiv1.Memo{Content: content, Visibility: apiv1.Visibility_PRIVATE},
+		})
+		require.NoError(t, err)
+		return memo
+	}
+
+	updateMemo := func(memo *apiv1.Memo, paths []string, mutate func(*apiv1.Memo)) error {
+		patch := &apiv1.Memo{Name: memo.Name}
+		mutate(patch)
+		_, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+			Memo:       patch,
+			UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+		})
+		return err
+	}
+
+	setState := func(memo *apiv1.Memo, state apiv1.State) {
+		require.NoError(t, updateMemo(memo, []string{"state"}, func(m *apiv1.Memo) {
+			m.State = state
+		}))
+	}
+
+	// ARCHIVED: everything but a restore or a visibility change is rejected.
+	archived := newMemo("archived memo")
+	setState(archived, apiv1.State_ARCHIVED)
+
+	require.Equal(t, codes.FailedPrecondition, status.Code(updateMemo(archived, []string{"content"}, func(m *apiv1.Memo) {
+		m.Content = "edited while archived"
+	})), "archived memos must not accept content updates")
+	require.Equal(t, codes.FailedPrecondition, status.Code(updateMemo(archived, []string{"plan_start_time", "plan_end_time"}, func(m *apiv1.Memo) {
+		now := timestamppb.Now()
+		m.PlanStartTime = now
+		m.PlanEndTime = now
+	})), "archived memos must not accept plan time updates")
+	require.Equal(t, codes.FailedPrecondition, status.Code(updateMemo(archived, []string{"pinned"}, func(m *apiv1.Memo) {
+		m.Pinned = true
+	})), "archived memos must not accept pin changes")
+	require.Equal(t, codes.FailedPrecondition, status.Code(updateMemo(archived, []string{"state"}, func(m *apiv1.Memo) {
+		m.State = apiv1.State_COMPLETED
+	})), "archived memos must not be completed directly")
+	require.NoError(t, updateMemo(archived, []string{"visibility"}, func(m *apiv1.Memo) {
+		m.Visibility = apiv1.Visibility_PROTECTED
+	}), "archived memos keep an editable visibility")
+	require.NoError(t, updateMemo(archived, []string{"state"}, func(m *apiv1.Memo) {
+		m.State = apiv1.State_NORMAL
+	}), "archived memos can be restored")
+
+	// COMPLETED: the timeline is frozen, the body stays editable.
+	completed := newMemo("completed memo")
+	setState(completed, apiv1.State_COMPLETED)
+
+	require.NoError(t, updateMemo(completed, []string{"content"}, func(m *apiv1.Memo) {
+		m.Content = "outcome recorded"
+	}), "completed memos keep an editable body")
+	require.Equal(t, codes.FailedPrecondition, status.Code(updateMemo(completed, []string{"plan_start_time", "plan_end_time"}, func(m *apiv1.Memo) {
+		now := timestamppb.Now()
+		m.PlanStartTime = now
+		m.PlanEndTime = now
+	})), "completed memos must not accept plan time updates")
+	require.Equal(t, codes.FailedPrecondition, status.Code(updateMemo(completed, []string{"create_time"}, func(m *apiv1.Memo) {
+		m.CreateTime = timestamppb.Now()
+	})), "completed memos must not accept create time updates")
+	require.NoError(t, updateMemo(completed, []string{"state"}, func(m *apiv1.Memo) {
+		m.State = apiv1.State_NORMAL
+	}), "completed memos can be un-completed")
+
+	// NORMAL: no locks apply.
+	normal := newMemo("normal memo")
+	require.NoError(t, updateMemo(normal, []string{"content"}, func(m *apiv1.Memo) {
+		m.Content = "edited"
+	}))
+	require.NoError(t, updateMemo(normal, []string{"plan_start_time", "plan_end_time"}, func(m *apiv1.Memo) {
+		now := timestamppb.Now()
+		m.PlanStartTime = now
+		m.PlanEndTime = now
+	}))
+
+	// Restoring an archived memo returns it to NORMAL and clears both the
+	// archive stamp and the completion stamp it may still carry.
+	restored := newMemo("completed then archived")
+	setState(restored, apiv1.State_COMPLETED)
+	setState(restored, apiv1.State_ARCHIVED)
+
+	archivedAgain, err := ts.Service.UpdateMemo(userCtx, &apiv1.UpdateMemoRequest{
+		Memo:       &apiv1.Memo{Name: restored.Name, State: apiv1.State_NORMAL},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"state"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, apiv1.State_NORMAL, archivedAgain.State)
+	require.Nil(t, archivedAgain.ArchivedTime, "restoring clears the archive stamp")
+	require.Nil(t, archivedAgain.CompletedTime, "restoring clears the completion stamp")
+}

@@ -486,6 +486,11 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 	if memo.CreatorID != user.ID && !isSuperUser(user) {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
+	// Enforce the state-based write locks (archived = frozen snapshot,
+	// completed = frozen timeline) before touching any field.
+	if err := validateMemoStateLocks(memo.RowStatus, request.UpdateMask.Paths, request.Memo.State); err != nil {
+		return nil, err
+	}
 
 	update := &store.UpdateMemo{
 		ID: memo.ID,
