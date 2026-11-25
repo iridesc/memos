@@ -37,6 +37,8 @@ const Home = () => {
         enabled={isInitialized}
         showMemoEditor={tab === "all" || tab === "unscheduled"}
         splitCompleted={false}
+        // The completed tab is homogeneous: every row is completed already.
+        showStateWord={tab !== "completed"}
         emptyMessage={t(`message.tab-empty-${tab}`)}
       />
     </div>

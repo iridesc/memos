@@ -33,9 +33,10 @@ const getContentRevision = (content: string) => {
 };
 
 const MemoBody: React.FC<MemoBodyProps> = ({ compact }) => {
-  const { memo, parentPage, showBlurredContent, blurred, readonly, openEditor, openPreview, toggleBlurVisibility } = useMemoViewContext();
+  const { memo, parentPage, isArchived, showBlurredContent, blurred, readonly, openEditor, openPreview, toggleBlurVisibility } =
+    useMemoViewContext();
 
-  const { handleMemoContentClick, handleMemoContentDoubleClick } = useMemoHandlers({ readonly, openEditor, openPreview });
+  const { handleMemoContentClick, handleMemoContentDoubleClick } = useMemoHandlers({ readonly, isArchived, openEditor, openPreview });
 
   const referencedMemos = memo.relations.filter((relation) => relation.type === MemoRelation_Type.REFERENCE);
   const contentRevision = useMemo(() => getContentRevision(memo.content), [memo.content]);

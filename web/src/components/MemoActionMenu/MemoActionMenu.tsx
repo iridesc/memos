@@ -46,9 +46,11 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
   const isComment = Boolean(memo.parent);
   const isArchived = memo.state === State.ARCHIVED;
   const isCompleted = memo.state === State.COMPLETED;
-  const isFrozen = isArchived || isCompleted;
+  // An archived memo is a frozen snapshot: nothing but a restore may change.
+  // A completed memo keeps an editable body, only its timeline is frozen.
+  const isContentEditable = !readonly && !isArchived;
   const taskStats = countTasks(memo.content);
-  const canMutateTasks = !readonly && !isFrozen && taskStats.total > 0;
+  const canMutateTasks = isContentEditable && taskStats.total > 0;
   const hasOpenTasks = taskStats.completed < taskStats.total;
   const hasCompletedTasks = taskStats.completed > 0;
 
@@ -77,8 +79,8 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={2}>
-        {/* Edit actions (non-readonly, non-frozen) */}
-        {!readonly && !isFrozen && (
+        {/* Edit actions (non-readonly, non-archived) */}
+        {isContentEditable && (
           <>
             {!isComment && (
               <DropdownMenuItem onClick={handleTogglePinMemoBtnClick}>
@@ -93,7 +95,7 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
           </>
         )}
 
-        {movement && !readonly && !isFrozen && !isComment && (
+        {movement && !readonly && !isArchived && !isCompleted && !isComment && (
           <>
             <DropdownMenuItem disabled={movement.moving || !movement.canMoveUp} onClick={() => movement.move(-1)}>
               <ArrowUpIcon className="w-4 h-auto" />
@@ -106,8 +108,8 @@ const MemoActionMenu = (props: MemoActionMenuProps) => {
           </>
         )}
 
-        {/* Copy submenu (non-frozen) */}
-        {!isFrozen && (
+        {/* Copy submenu (reading a memo is always allowed) */}
+        {!isArchived && (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <CopyIcon className="w-4 h-auto" />

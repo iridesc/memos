@@ -24,7 +24,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
   const t = useTranslate();
   const [reactionSelectorOpen, setReactionSelectorOpen] = useState(false);
 
-  const { memo, creator, currentUser, parentPage, isArchived, readonly, openEditor } = useMemoViewContext();
+  const { memo, creator, currentUser, parentPage, isArchived, readonly, openEditor, showStateWord } = useMemoViewContext();
   const { createTime, updateTime, planStartTime, planEndTime, completedTime, archivedTime } = useMemoViewDerived();
   const updateMemo = useUpdateMemo();
 
@@ -36,9 +36,11 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
   const { unpinMemo } = useMemoActions(memo);
 
   // Complete toggle — show when memo has plan times and user can edit.
+  // A completed memo always shows it as well, otherwise a completed memo whose
+  // plan times were cleared could never be un-completed.
   const isCompleted = memo.state === State.COMPLETED;
   const hasPlanTime = Boolean(planStartTime && planEndTime);
-  const showCompleteCheckbox = hasPlanTime && !isArchived && !readonly;
+  const showCompleteCheckbox = !isArchived && !readonly && (hasPlanTime || isCompleted);
 
   const handleToggleComplete = useCallback(async () => {
     const newState = isCompleted ? State.NORMAL : State.COMPLETED;
@@ -91,6 +93,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
           archivedTime={archivedTime}
           isCompleted={isCompleted}
           isArchived={isArchived}
+          showStateWord={showStateWord}
           timeTooltip={timeTooltip}
           onGotoDetail={handleGotoMemoDetailPage}
           compact={compact}
@@ -180,20 +183,34 @@ export const PlanTimeDisplay: React.FC<{
   archivedTime?: Date;
   isCompleted?: boolean;
   isArchived?: boolean;
+  /** Homogeneous lists drop the state word and keep the date only. */
+  showStateWord?: boolean;
   timeTooltip: TimeTooltipContent;
   onGotoDetail: () => void;
   /** Lists use calendar-day phrasing (明天 / 2周后); detail pages (compact=false) show the absolute range. */
   compact?: boolean;
-}> = ({ planStartTime, planEndTime, completedTime, archivedTime, isCompleted, isArchived, timeTooltip, onGotoDetail, compact = true }) => {
+}> = ({
+  planStartTime,
+  planEndTime,
+  completedTime,
+  archivedTime,
+  isCompleted,
+  isArchived,
+  showStateWord = true,
+  timeTooltip,
+  onGotoDetail,
+  compact = true,
+}) => {
   const t = useTranslate();
 
-  if (!planStartTime || !planEndTime) return null;
+  const formatStateDate = (date?: Date) => (date ? date.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "");
 
   // Archived memos are settled: show a muted "已归档" label with the archive date
   // instead of any relative plan-time state, so archived items never keep nagging
   // about being expired.
   if (isArchived) {
-    const dateStr = archivedTime ? archivedTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
+    const dateStr = formatStateDate(archivedTime);
+    if (!showStateWord && !dateStr) return null;
     return (
       <TimeTooltip content={timeTooltip}>
         <button
@@ -201,8 +218,8 @@ export const PlanTimeDisplay: React.FC<{
           className="text-xs ml-2 whitespace-nowrap select-none cursor-pointer transition-colors text-left text-muted-foreground hover:text-foreground"
           onClick={onGotoDetail}
         >
-          {t("common.archived")}
-          {dateStr && <span className="ml-1 font-normal text-muted-foreground">{dateStr}</span>}
+          {showStateWord && t("common.archived")}
+          {dateStr && <span className={cn("font-normal text-muted-foreground", showStateWord && "ml-1")}>{dateStr}</span>}
         </button>
       </TimeTooltip>
     );
@@ -210,7 +227,8 @@ export const PlanTimeDisplay: React.FC<{
 
   // Completed memos: show green "已完成" with completion date.
   if (isCompleted) {
-    const dateStr = completedTime ? completedTime.toLocaleDateString(i18n.language, { month: "numeric", day: "numeric" }) : "";
+    const dateStr = formatStateDate(completedTime);
+    if (!showStateWord && !dateStr) return null;
     return (
       <TimeTooltip content={timeTooltip}>
         <button
@@ -218,8 +236,25 @@ export const PlanTimeDisplay: React.FC<{
           className="text-xs ml-2 whitespace-nowrap select-none cursor-pointer transition-colors text-left text-green-500 font-bold"
           onClick={onGotoDetail}
         >
-          {t("common.completed")}
-          {dateStr && <span className="ml-1 font-normal text-muted-foreground">{dateStr}</span>}
+          {showStateWord && t("common.completed")}
+          {dateStr && <span className={cn("font-normal text-muted-foreground", showStateWord && "ml-1")}>{dateStr}</span>}
+        </button>
+      </TimeTooltip>
+    );
+  }
+
+  // Memos without plan times have no time state to show. Render a muted placeholder
+  // so the header keeps a clickable entry into the standalone detail page — without
+  // it, unscheduled memos cannot be opened at all.
+  if (!planStartTime || !planEndTime) {
+    return (
+      <TimeTooltip content={timeTooltip}>
+        <button
+          type="button"
+          className="text-xs ml-2 whitespace-nowrap select-none cursor-pointer transition-colors text-left text-muted-foreground hover:text-foreground"
+          onClick={onGotoDetail}
+        >
+          {t("common.plan-time.unscheduled")}
         </button>
       </TimeTooltip>
     );

@@ -30,6 +30,7 @@ const STUB_CONTEXT: MemoViewContextValue = {
   cardWidth: 0,
   isArchived: false,
   readonly: true,
+  showStateWord: true,
   showBlurredContent: false,
   blurred: false,
   openEditor: () => {},

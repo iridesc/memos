@@ -144,6 +144,7 @@
     "mark-completed": "Mark as completed",
     "mark-uncompleted": "Mark as uncompleted",
     "plan-time": {
+      "unscheduled": "Unscheduled",
       "not-started": "{{when}} · lasts {{duration}}",
       "in-progress": "in progress · ends in {{time}}",
       "expired": "expired",

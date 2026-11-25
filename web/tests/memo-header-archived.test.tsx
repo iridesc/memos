@@ -57,8 +57,9 @@ const renderPlanTime = (props: {
   compact?: boolean;
   isArchived?: boolean;
   isCompleted?: boolean;
-  start: Date;
-  end: Date;
+  showStateWord?: boolean;
+  start?: Date;
+  end?: Date;
   completedTime?: Date;
   archivedTime?: Date;
 }) =>
@@ -70,6 +71,7 @@ const renderPlanTime = (props: {
       archivedTime={props.archivedTime}
       isCompleted={props.isCompleted}
       isArchived={props.isArchived}
+      showStateWord={props.showStateWord}
       compact={props.compact}
       timeTooltip={{}}
       onGotoDetail={() => {}}
@@ -107,11 +109,19 @@ describe("PlanTimeDisplay", () => {
     expect(screen.getByText(archivedTime.toLocaleDateString("zh-Hans", { month: "numeric", day: "numeric" }))).toBeInTheDocument();
   });
 
-  it("does not show the archived label for an archived memo without plan times", () => {
+  it("shows the archived label for an archived memo without plan times", () => {
     render(<PlanTimeDisplay isArchived timeTooltip={{}} onGotoDetail={() => {}} />);
 
-    expect(screen.queryByText("已归档")).not.toBeInTheDocument();
+    expect(screen.getByText("已归档")).toBeInTheDocument();
     expect(screen.queryByText("已过期")).not.toBeInTheDocument();
+  });
+
+  it("drops the state word in homogeneous lists and keeps the date", () => {
+    const archivedTime = new Date("2026-11-03T10:00:00Z");
+    renderPlanTime({ isArchived: true, archivedTime, showStateWord: false, start: at(0, 9), end: at(0, 14) });
+
+    expect(screen.queryByText("已归档")).not.toBeInTheDocument();
+    expect(screen.getByText(archivedTime.toLocaleDateString("zh-Hans", { month: "numeric", day: "numeric" }))).toBeInTheDocument();
   });
 
   it("keeps the completed label for a completed memo", () => {

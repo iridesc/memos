@@ -9,6 +9,7 @@ import { memoKeys } from "@/hooks/useMemoQueries";
 import { userKeys } from "@/hooks/useUserQueries";
 import { handleError } from "@/lib/error";
 import { cn } from "@/lib/utils";
+import { State } from "@/types/proto/api/v1/common_pb";
 import { InstanceSetting_Key } from "@/types/proto/api/v1/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityFromString } from "@/utils/memo";
@@ -59,6 +60,9 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
 
   const memoName = memo?.name;
+  // A completed memo has a frozen timeline: neither the plan times nor the
+  // creation time can be changed anymore (the API rejects it as well).
+  const isTimelineLocked = memo?.state === State.COMPLETED;
   const canTranscribe = useMemo(() => {
     const providerId = aiSetting.transcription?.providerId ?? "";
     if (!providerId) return false;
@@ -359,7 +363,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
 
         {(memoName || (!memo && state.timestamps.createTime)) && (
           <div className="w-full -mb-1">
-            <TimestampPopover />
+            <TimestampPopover disabled={isTimelineLocked} />
           </div>
         )}
 
@@ -382,7 +386,13 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
         {/* Metadata and toolbar grouped together at bottom */}
         <div className="w-full flex flex-col gap-2">
           <EditorMetadata memoName={memoName} />
-          <EditorToolbar onSave={handleSave} onCancel={onCancel} memoName={memoName} onAudioRecorderClick={handleAudioRecorderClick} />
+          <EditorToolbar
+            onSave={handleSave}
+            onCancel={onCancel}
+            memoName={memoName}
+            onAudioRecorderClick={handleAudioRecorderClick}
+            planTimeDisabled={isTimelineLocked}
+          />
         </div>
       </div>
     </>

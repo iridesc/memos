@@ -27,7 +27,9 @@ export const PlanTimeEditor: FC<{
   planStartTime?: Date;
   planEndTime?: Date;
   onChange: (times: { planStartTime?: Date; planEndTime?: Date }) => void;
-}> = ({ planStartTime, planEndTime, onChange }) => {
+  /** Completed memos have a frozen timeline — plan times can no longer change. */
+  disabled?: boolean;
+}> = ({ planStartTime, planEndTime, onChange, disabled = false }) => {
   const t = useTranslate();
   const [open, setOpen] = useState(false);
   const [isCustomMode, setIsCustomMode] = useState(false);
@@ -37,6 +39,7 @@ export const PlanTimeEditor: FC<{
   const hasAnyPlanTime = !!(planStartTime || planEndTime);
 
   const handleOpenChange = (newOpen: boolean) => {
+    if (disabled) return;
     if (!newOpen) {
       setIsCustomMode(false);
       setPickerScope(null);
@@ -169,7 +172,12 @@ export const PlanTimeEditor: FC<{
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={`min-w-0 max-w-full ${hasPlanTime ? "text-primary bg-primary/10" : ""}`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={disabled}
+          className={`min-w-0 max-w-full ${hasPlanTime ? "text-primary bg-primary/10" : ""}`}
+        >
           <CalendarIcon className="w-4 h-auto" />
           {hasPlanTime && <span className="ml-1 truncate text-xs">{displayRange(planStartTime, planEndTime)}</span>}
         </Button>
@@ -374,7 +382,7 @@ export const PlanTimeEditor: FC<{
   );
 };
 
-export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoName, onAudioRecorderClick }) => {
+export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoName, onAudioRecorderClick, planTimeDisabled }) => {
   const t = useTranslate();
   const { state, actions, dispatch } = useEditorContext();
   const { valid } = validationService.canSave(state);
@@ -410,6 +418,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({ onSave, onCancel, memoNa
         planStartTime={state.timestamps.planStartTime}
         planEndTime={state.timestamps.planEndTime}
         onChange={(times) => dispatch(actions.setTimestamps(times))}
+        disabled={planTimeDisabled}
       />
       <div className="ml-auto max-w-full flex flex-wrap justify-end items-center gap-2">
         <VisibilitySelector value={state.metadata.visibility} onChange={handleVisibilityChange} />

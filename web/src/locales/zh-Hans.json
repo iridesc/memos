@@ -110,6 +110,7 @@
     "mark-completed": "标记完成",
     "mark-uncompleted": "取消完成",
     "plan-time": {
+      "unscheduled": "待安排",
       "not-started": "{{when}} · 持续{{duration}}",
       "in-progress": "进行中 · {{time}}后结束",
       "expired": "已过期",

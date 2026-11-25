@@ -55,7 +55,7 @@ const TimestampInput: FC<{
   );
 };
 
-export const TimestampPopover: FC = () => {
+export const TimestampPopover: FC<{ disabled?: boolean }> = ({ disabled = false }) => {
   const t = useTranslate();
   const { state, actions, dispatch } = useEditorContext();
   const { createTime } = state.timestamps;
@@ -67,7 +67,8 @@ export const TimestampPopover: FC = () => {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="w-auto text-sm text-muted-foreground text-left hover:text-foreground transition-colors cursor-pointer"
+          disabled={disabled}
+          className="w-auto text-sm text-muted-foreground text-left hover:text-foreground transition-colors cursor-pointer disabled:cursor-not-allowed disabled:hover:text-muted-foreground"
         >
           {formatDate(createTime)}
         </button>

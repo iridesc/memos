@@ -4,12 +4,14 @@ import type { PreviewMediaItem } from "@/utils/media-item";
 
 interface UseMemoHandlersOptions {
   readonly: boolean;
+  /** Archived memos are frozen snapshots — they cannot be edited at all. */
+  isArchived: boolean;
   openEditor: () => void;
   openPreview: (items: string | string[] | PreviewMediaItem[], index?: number) => void;
 }
 
 export const useMemoHandlers = (options: UseMemoHandlersOptions) => {
-  const { readonly, openEditor, openPreview } = options;
+  const { readonly, isArchived, openEditor, openPreview } = options;
   const { memoRelatedSetting } = useInstance();
 
   const handleMemoContentClick = useCallback(
@@ -27,13 +29,13 @@ export const useMemoHandlers = (options: UseMemoHandlersOptions) => {
 
   const handleMemoContentDoubleClick = useCallback(
     (e: React.MouseEvent) => {
-      if (readonly) return;
+      if (readonly || isArchived) return;
       if (memoRelatedSetting.enableDoubleClickEdit) {
         e.preventDefault();
         openEditor();
       }
     },
-    [readonly, openEditor, memoRelatedSetting.enableDoubleClickEdit],
+    [readonly, isArchived, openEditor, memoRelatedSetting.enableDoubleClickEdit],
   );
 
   return { handleMemoContentClick, handleMemoContentDoubleClick };

@@ -4,6 +4,7 @@ import { isEqual } from "lodash-es";
 import { memoServiceClient } from "@/connect";
 import type { Attachment } from "@/types/proto/api/v1/attachment_service_pb";
 import { AttachmentSchema } from "@/types/proto/api/v1/attachment_service_pb";
+import { State } from "@/types/proto/api/v1/common_pb";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
 import type { EditorState } from "../state";
@@ -52,8 +53,12 @@ function buildUpdateMask(
   // Auto-update timestamp is server-managed: the API refreshes update_time
   // whenever content / attachments / relations / location change.
 
+  // A completed memo has a frozen timeline: the API rejects plan time and
+  // create time changes, so they must not be part of the update at all.
+  const isTimelineLocked = prevMemo.state === State.COMPLETED;
+
   // Handle custom create time
-  if (state.timestamps.createTime) {
+  if (!isTimelineLocked && state.timestamps.createTime) {
     const prevCreateTime = prevMemo.createTime ? timestampDate(prevMemo.createTime) : undefined;
     if (!isEqual(state.timestamps.createTime, prevCreateTime)) {
       mask.add("create_time");
@@ -62,23 +67,23 @@ function buildUpdateMask(
   }
 
   // Handle plan times
-  if (state.timestamps.planStartTime !== undefined) {
+  if (!isTimelineLocked && state.timestamps.planStartTime !== undefined) {
     const prevPlanStart = prevMemo.planStartTime ? timestampDate(prevMemo.planStartTime) : undefined;
     if (!isEqual(state.timestamps.planStartTime?.getTime(), prevPlanStart?.getTime())) {
       mask.add("plan_start_time");
       patch.planStartTime = state.timestamps.planStartTime ? timestampFromDate(state.timestamps.planStartTime) : undefined;
     }
-  } else if (prevMemo.planStartTime) {
+  } else if (!isTimelineLocked && prevMemo.planStartTime) {
     mask.add("plan_start_time");
     patch.planStartTime = undefined;
   }
-  if (state.timestamps.planEndTime !== undefined) {
+  if (!isTimelineLocked && state.timestamps.planEndTime !== undefined) {
     const prevPlanEnd = prevMemo.planEndTime ? timestampDate(prevMemo.planEndTime) : undefined;
     if (!isEqual(state.timestamps.planEndTime?.getTime(), prevPlanEnd?.getTime())) {
       mask.add("plan_end_time");
       patch.planEndTime = state.timestamps.planEndTime ? timestampFromDate(state.timestamps.planEndTime) : undefined;
     }
-  } else if (prevMemo.planEndTime) {
+  } else if (!isTimelineLocked && prevMemo.planEndTime) {
     mask.add("plan_end_time");
     patch.planEndTime = undefined;
   }

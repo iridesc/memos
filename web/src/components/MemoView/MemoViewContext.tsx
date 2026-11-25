@@ -14,6 +14,8 @@ export interface MemoViewContextValue {
   cardWidth: number;
   isArchived: boolean;
   readonly: boolean;
+  /** Whether the header spells out the state word ("已完成" / "已归档"). */
+  showStateWord: boolean;
   showBlurredContent: boolean;
   blurred: boolean;
   openEditor: () => void;

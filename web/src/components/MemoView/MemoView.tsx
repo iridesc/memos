@@ -13,6 +13,7 @@ import PreviewImageDialog from "../PreviewImageDialog";
 import { MemoBody, MemoCommentListView, MemoHeader } from "./components";
 import { MEMO_CARD_BASE_CLASSES } from "./constants";
 import { useImagePreview } from "./hooks";
+import { useMemoStateLabel } from "./MemoStateLabelContext";
 import { computeCommentAmount, MemoViewContext } from "./MemoViewContext";
 import type { MemoViewProps } from "./types";
 
@@ -27,6 +28,7 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
   const creator = useUser(memoData.creator).data;
   const isArchived = memoData.state === State.ARCHIVED;
   const readonly = memoData.creator !== currentUser?.name && !isSuperUser(currentUser);
+  const showStateWord = useMemoStateLabel();
   const parentPage = parentPageProp || "/";
 
   // Blur content when any tag has blur_content enabled in the instance tag settings.
@@ -79,6 +81,7 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
       cardWidth,
       isArchived,
       readonly,
+      showStateWord,
       showBlurredContent,
       blurred,
       openEditor,
@@ -93,6 +96,7 @@ const MemoView: React.FC<MemoViewProps> = (props: MemoViewProps) => {
       cardWidth,
       isArchived,
       readonly,
+      showStateWord,
       showBlurredContent,
       blurred,
       openEditor,

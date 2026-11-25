@@ -5,6 +5,7 @@ import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } 
 import toast from "react-hot-toast";
 import { MentionResolutionProvider } from "@/components/MemoContent/MentionResolutionContext";
 import { deriveDefaultCreateTimeFromFilters } from "@/components/MemoEditor/utils/deriveDefaultCreateTime";
+import { MemoStateLabelProvider } from "@/components/MemoView/MemoStateLabelContext";
 import { Button } from "@/components/ui/button";
 import { userServiceClient } from "@/connect";
 import { useMemoFilterContext } from "@/contexts/MemoFilterContext";
@@ -46,6 +47,13 @@ interface Props {
   splitCompleted?: boolean;
   /** Message shown when the list has no data. */
   emptyMessage?: string;
+  /**
+   * Whether the memo cards spell out their state word ("已完成" / "已归档").
+   * Defaults to false for lists that are homogeneous by state (the archive page,
+   * a completed-only list), where the word would only repeat what the list
+   * already says.
+   */
+  showStateWord?: boolean;
 }
 
 const COMPLETED_COLLAPSED_KEY = "memos-completed-collapsed";
@@ -130,6 +138,9 @@ const PagedMemoList = (props: Props) => {
   })();
 
   const listState = props.state || State.NORMAL;
+  // A list scoped to a single state (archive page, completed list) already tells
+  // the state of every row, so the per-card state word is noise there.
+  const showStateWord = props.showStateWord ?? (listState !== State.ARCHIVED && listState !== State.COMPLETED);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteMemos(
     {
@@ -330,7 +341,7 @@ const PagedMemoList = (props: Props) => {
                         : null
                     }
                   >
-                    {props.renderer(item.memo)}
+                    <MemoStateLabelProvider value={showStateWord}>{props.renderer(item.memo)}</MemoStateLabelProvider>
                   </MemoMoveContext.Provider>
                 ) : (
                   <div key={item.key} className="px-2 pt-3 pb-1 text-xs text-muted-foreground">
@@ -350,7 +361,12 @@ const PagedMemoList = (props: Props) => {
                     {completedCollapsed ? <ChevronRightIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
                     <span>{t("common.completed-count", { count: completedMemos.length })}</span>
                   </button>
-                  {!completedCollapsed && <div className="mt-1">{completedMemos.map((memo) => props.renderer(memo))}</div>}
+                  {!completedCollapsed && (
+                    <div className="mt-1">
+                      {/* The group header already states the state of every memo inside it. */}
+                      <MemoStateLabelProvider value={false}>{completedMemos.map((memo) => props.renderer(memo))}</MemoStateLabelProvider>
+                    </div>
+                  )}
                 </div>
               )}
 

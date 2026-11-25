@@ -38,6 +38,8 @@ export interface EditorToolbarProps {
   onCancel?: () => void;
   memoName?: string;
   onAudioRecorderClick: () => void;
+  /** Completed memos have a frozen timeline — plan times can no longer change. */
+  planTimeDisabled?: boolean;
 }
 
 export interface EditorMetadataProps {
