@@ -1158,6 +1158,16 @@ func applyStateTimestamps(current, next store.RowStatus, update *store.UpdateMem
 	}
 }
 
+// planStartGracePeriod is how far a plan start time may lag behind the
+// server clock on a new memo.
+//
+// The client aligns a planned start to a five-minute mark, so a start that
+// was picked moments ago can already be in the past by the time the request
+// reaches the server. The grace period matches that granularity and keeps a
+// start that was chosen "right now" from being rejected because the request
+// took a moment to arrive.
+const planStartGracePeriod = 5 * 60
+
 // validatePlanTimes validates plan start and end times.
 // Rules:
 // 1. Both must be set or both must be nil (no partial setting).
@@ -1179,7 +1189,7 @@ func validatePlanTimes(startTs, endTs *int64, isUpdate bool) error {
 	// Updates (e.g. drag-to-reorder) may set start time in the past.
 	if !isUpdate {
 		now := time.Now().Unix()
-		if *startTs < now {
+		if *startTs < now-planStartGracePeriod {
 			return status.Errorf(codes.InvalidArgument, "plan_start_time cannot be in the past")
 		}
 	}

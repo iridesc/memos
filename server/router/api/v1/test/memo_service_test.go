@@ -970,3 +970,48 @@ func TestUpdateMemoStateLocks(t *testing.T) {
 	require.Nil(t, archivedAgain.ArchivedTime, "restoring clears the archive stamp")
 	require.Nil(t, archivedAgain.CompletedTime, "restoring clears the completion stamp")
 }
+
+// TestCreateMemoPlanTimeGracePeriod verifies that a plan start time may lag
+// a little behind the server clock.
+//
+// The client aligns a planned start to a five-minute mark, so a start that was
+// picked "right now" can already be in the past by the time the request
+// arrives. Such a start is still accepted, while a start that is clearly
+// over is rejected.
+func TestCreateMemoPlanTimeGracePeriod(t *testing.T) {
+	ctx := context.Background()
+
+	ts := NewTestService(t)
+	defer ts.Cleanup()
+
+	user, err := ts.CreateRegularUser(ctx, "test-user-plan-grace")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+
+	userCtx := ts.CreateUserContext(ctx, user.ID)
+
+	createWithPlanStart := func(offset time.Duration) error {
+		start := time.Now().Add(offset)
+		_, err := ts.Service.CreateMemo(userCtx, &apiv1.CreateMemoRequest{
+			Memo: &apiv1.Memo{
+				Content:       "planned memo",
+				Visibility:    apiv1.Visibility_PRIVATE,
+				PlanStartTime: timestamppb.New(start),
+				PlanEndTime:   timestamppb.New(start.Add(time.Hour)),
+			},
+		})
+		return err
+	}
+
+	// A start that was picked moments ago is accepted.
+	require.NoError(t, createWithPlanStart(-time.Minute))
+
+	// A start in the future is accepted.
+	require.NoError(t, createWithPlanStart(time.Hour))
+
+	// A start that is clearly over is rejected.
+	err = createWithPlanStart(-10 * time.Minute)
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Contains(t, status.Convert(err).Message(), "plan_start_time cannot be in the past")
+}
