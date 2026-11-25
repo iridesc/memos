@@ -8,6 +8,7 @@ import useCurrentUser from "@/hooks/useCurrentUser";
 import { memoKeys } from "@/hooks/useMemoQueries";
 import { userKeys } from "@/hooks/useUserQueries";
 import { handleError } from "@/lib/error";
+import { shiftStalePlanTimeRange } from "@/lib/plan-time";
 import { cn } from "@/lib/utils";
 import { State } from "@/types/proto/api/v1/common_pb";
 import { InstanceSetting_Key } from "@/types/proto/api/v1/instance_service_pb";
@@ -282,6 +283,10 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
     try {
       const result = await memoService.save(state, { memoName, parentMemoName });
 
+      if (result.planTimeShifted) {
+        toast.success(t("editor.plan-time.shifted"));
+      }
+
       if (!result.hasChanges) {
         toast.error(t("editor.no-changes-detected"));
         onCancel?.();
@@ -324,7 +329,10 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
           dispatch(actions.setTimestamps({ createTime: defaultCreateTime }));
         }
         if (defaultPlanTimes) {
-          dispatch(actions.setTimestamps({ planStartTime: defaultPlanTimes.planStartTime, planEndTime: defaultPlanTimes.planEndTime }));
+          // The prefilled window belongs to the moment the editor opened, so it
+          // is moved forward again before the next memo is prefilled.
+          const nextPlanTimes = shiftStalePlanTimeRange(defaultPlanTimes, new Date());
+          dispatch(actions.setTimestamps({ planStartTime: nextPlanTimes.planStartTime, planEndTime: nextPlanTimes.planEndTime }));
         }
       }
 

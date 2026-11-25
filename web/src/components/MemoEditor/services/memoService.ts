@@ -2,6 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { FieldMaskSchema, timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { isEqual } from "lodash-es";
 import { memoServiceClient } from "@/connect";
+import { shiftStalePlanTimeRange } from "@/lib/plan-time";
 import type { Attachment } from "@/types/proto/api/v1/attachment_service_pb";
 import { AttachmentSchema } from "@/types/proto/api/v1/attachment_service_pb";
 import { State } from "@/types/proto/api/v1/common_pb";
@@ -98,7 +99,7 @@ export const memoService = {
       memoName?: string;
       parentMemoName?: string;
     },
-  ): Promise<{ memoName: string; hasChanges: boolean }> {
+  ): Promise<{ memoName: string; hasChanges: boolean; planTimeShifted?: boolean }> {
     // 1. Upload local files first
     const newAttachments = await uploadService.uploadFiles(state.localFiles);
     const allAttachments = [...state.metadata.attachments, ...newAttachments];
@@ -120,6 +121,17 @@ export const memoService = {
     }
 
     // 3. Create new memo or comment
+    // A prefilled plan window goes stale while the editor stays open, and the
+    // API rejects a plan start time in the past. A stale window is therefore
+    // moved forward to the current time before it is sent.
+    const planTimes = shiftStalePlanTimeRange(
+      {
+        planStartTime: state.timestamps.planStartTime,
+        planEndTime: state.timestamps.planEndTime,
+      },
+      new Date(),
+    );
+
     const memoData = create(MemoSchema, {
       content: state.content,
       visibility: state.metadata.visibility,
@@ -127,8 +139,8 @@ export const memoService = {
       relations: state.metadata.relations,
       location: state.metadata.location,
       createTime: state.timestamps.createTime ? timestampFromDate(state.timestamps.createTime) : undefined,
-      planStartTime: state.timestamps.planStartTime ? timestampFromDate(state.timestamps.planStartTime) : undefined,
-      planEndTime: state.timestamps.planEndTime ? timestampFromDate(state.timestamps.planEndTime) : undefined,
+      planStartTime: planTimes.planStartTime ? timestampFromDate(planTimes.planStartTime) : undefined,
+      planEndTime: planTimes.planEndTime ? timestampFromDate(planTimes.planEndTime) : undefined,
     });
 
     const memo = options.parentMemoName
@@ -138,7 +150,7 @@ export const memoService = {
         })
       : await memoServiceClient.createMemo({ memo: memoData });
 
-    return { memoName: memo.name, hasChanges: true };
+    return { memoName: memo.name, hasChanges: true, planTimeShifted: planTimes.shifted };
   },
 
   /** Build editor state from an already-loaded Memo entity (no network request). */

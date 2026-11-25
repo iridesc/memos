@@ -262,7 +262,9 @@
       "this-week": "This week",
       "this-month": "This month",
       "previous-month": "Previous month",
-      "next-month": "Next month"
+      "next-month": "Next month",
+      "stale": "The planned time has already passed",
+      "shifted": "The planned time had already passed, so it was moved to now."
     },
     "audio-recorder": {
       "attachment-label": "Audio recording",

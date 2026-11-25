@@ -1,5 +1,5 @@
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { type FC, useState } from "react";
+import { type FC, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import i18n from "@/i18n";
@@ -35,8 +35,17 @@ export const PlanTimeEditor: FC<{
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [pickerScope, setPickerScope] = useState<PlanTimePickerScope | null>(null);
   const [monthCursor, setMonthCursor] = useState(() => new Date());
+  // The current time is kept in state and refreshed every minute, so a plan
+  // window that has passed is marked as stale even while the editor stays
+  // open for hours.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
   const hasPlanTime = !!(planStartTime && planEndTime);
   const hasAnyPlanTime = !!(planStartTime || planEndTime);
+  const isStale = !!planStartTime && planStartTime.getTime() < now.getTime();
 
   const handleOpenChange = (newOpen: boolean) => {
     if (disabled) return;
@@ -78,7 +87,6 @@ export const PlanTimeEditor: FC<{
   const allHours = Array.from({ length: 24 }, (_, i) => i);
   const allMinutes = Array.from({ length: 12 }, (_, i) => i * 5);
 
-  const now = new Date();
   const minDate = formatDate(now);
   const startDate = formatDate(planStartTime);
   const endDate = formatDate(planEndTime);
@@ -176,7 +184,8 @@ export const PlanTimeEditor: FC<{
           variant="ghost"
           size="sm"
           disabled={disabled}
-          className={`min-w-0 max-w-full ${hasPlanTime ? "text-primary bg-primary/10" : ""}`}
+          title={isStale ? t("editor.plan-time.stale") : undefined}
+          className={`min-w-0 max-w-full ${hasPlanTime && !isStale ? "text-primary bg-primary/10" : ""} ${isStale ? "text-muted-foreground line-through" : ""}`}
         >
           <CalendarIcon className="w-4 h-auto" />
           {hasPlanTime && <span className="ml-1 truncate text-xs">{displayRange(planStartTime, planEndTime)}</span>}

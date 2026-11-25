@@ -12,6 +12,7 @@ import { useMemoFilterContext } from "@/contexts/MemoFilterContext";
 import { DEFAULT_LIST_MEMOS_PAGE_SIZE } from "@/helpers/consts";
 import { useInfiniteMemos } from "@/hooks/useMemoQueries";
 import { userKeys } from "@/hooks/useUserQueries";
+import { nextFiveMinuteMark } from "@/lib/plan-time";
 import { State } from "@/types/proto/api/v1/common_pb";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
@@ -124,14 +125,7 @@ const PagedMemoList = (props: Props) => {
   const defaultPlanTimes = (() => {
     if (!isTodayEditor) return undefined;
     const now = new Date();
-    const nextMin = Math.ceil((now.getMinutes() + 5) / 5) * 5;
-    let startH = now.getHours();
-    let startM = nextMin;
-    if (startM >= 60) {
-      startH += 1;
-      startM -= 60;
-    }
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, startM, 0, 0);
+    const start = nextFiveMinuteMark(now);
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 55, 0, 0);
     const end = todayEnd.getTime() - start.getTime() >= 60 * 60 * 1000 ? todayEnd : new Date(todayEnd.getTime() + 24 * 60 * 60 * 1000);
     return { planStartTime: start, planEndTime: end };

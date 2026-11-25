@@ -223,7 +223,9 @@
       "this-week": "本周",
       "this-month": "本月",
       "previous-month": "上个月",
-      "next-month": "下个月"
+      "next-month": "下个月",
+      "stale": "计划时间已过期",
+      "shifted": "计划时间已过期，已顺延到当前时间。"
     },
     "insert-menu": {
       "add-location": "添加位置",

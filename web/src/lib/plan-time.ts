@@ -114,3 +114,41 @@ export function createDayPlanTimeRange(day: Date, now: Date) {
     : new Date(day.getFullYear(), day.getMonth(), day.getDate(), FIXED_PRESET_HOUR, 0, 0, 0);
   return { planStartTime, planEndTime: endOfDay(planStartTime) };
 }
+
+/**
+ * The next five-minute mark at or after `now`.
+ *
+ * The result is never earlier than `now`, so a plan window built from it can
+ * never start in the past. Seconds and milliseconds are dropped, which is
+ * why the mark is rounded up rather than down.
+ */
+export function nextFiveMinuteMark(now: Date): Date {
+  return new Date(Math.ceil(now.getTime() / (5 * 60 * 1000)) * 5 * 60 * 1000);
+}
+
+/**
+ * Move a plan window that already started forward to the current time.
+ *
+ * The editor prefills a plan window when it opens and keeps it while the
+ * editor stays open, so a window can be stale by the time the user saves.
+ * The API rejects a plan start time in the past, so instead of failing the
+ * save the window is moved: the start becomes now, and the end keeps the
+ * originally planned duration whenever it is still ahead of the new start.
+ */
+export function shiftStalePlanTimeRange(
+  range: { planStartTime?: Date; planEndTime?: Date },
+  now: Date,
+): { planStartTime?: Date; planEndTime?: Date; shifted: boolean } {
+  const { planStartTime, planEndTime } = range;
+  if (!planStartTime || !planEndTime) {
+    return { planStartTime, planEndTime, shifted: false };
+  }
+  if (planStartTime.getTime() >= now.getTime()) {
+    return { planStartTime, planEndTime, shifted: false };
+  }
+
+  const planStart = nextFiveMinuteMark(now);
+  const duration = Math.max(planEndTime.getTime() - planStartTime.getTime(), 5 * 60 * 1000);
+  const planEnd = planEndTime.getTime() > planStart.getTime() ? planEndTime : new Date(planStart.getTime() + duration);
+  return { planStartTime: planStart, planEndTime: planEnd, shifted: true };
+}

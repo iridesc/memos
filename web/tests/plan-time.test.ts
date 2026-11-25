@@ -5,7 +5,9 @@ import {
   createQuickPlanTimeRange,
   monthDaysOf,
   monthLeadingBlanks,
+  nextFiveMinuteMark,
   PLAN_TIME_PRESETS,
+  shiftStalePlanTimeRange,
   weekDaysOf,
 } from "@/lib/plan-time";
 import { describePlanWhen, formatRelativePlanTime } from "@/lib/time";
@@ -161,5 +163,65 @@ describe("describePlanWhen buckets", () => {
     expect(describePlanWhen(345)).toEqual({ kind: "years", count: 1 });
     expect(describePlanWhen(400)).toEqual({ kind: "years", count: 1 });
     expect(describePlanWhen(730)).toEqual({ kind: "years", count: 2 });
+  });
+});
+
+describe("shiftStalePlanTimeRange", () => {
+  it("keeps a window that has not started yet", () => {
+    const range = { planStartTime: new Date(2026, 10, 4, 18, 0), planEndTime: new Date(2026, 10, 4, 23, 55) };
+    const result = shiftStalePlanTimeRange(range, new Date(2026, 10, 4, 15, 30));
+    expect(result.shifted).toBe(false);
+    expect(result.planStartTime).toEqual(range.planStartTime);
+    expect(result.planEndTime).toEqual(range.planEndTime);
+  });
+
+  it("moves the start to now when the window already started", () => {
+    const result = shiftStalePlanTimeRange(
+      { planStartTime: new Date(2026, 10, 4, 15, 35), planEndTime: new Date(2026, 10, 4, 23, 55) },
+      new Date(2026, 10, 4, 18, 2),
+    );
+    expect(result.shifted).toBe(true);
+    expect(result.planStartTime).toEqual(new Date(2026, 10, 4, 18, 5));
+    expect(result.planEndTime).toEqual(new Date(2026, 10, 4, 23, 55));
+  });
+
+  it("keeps the planned duration when the whole window is over", () => {
+    const result = shiftStalePlanTimeRange(
+      { planStartTime: new Date(2026, 10, 4, 15, 35), planEndTime: new Date(2026, 10, 4, 16, 35) },
+      new Date(2026, 10, 4, 18, 2),
+    );
+    expect(result.shifted).toBe(true);
+    expect(result.planStartTime).toEqual(new Date(2026, 10, 4, 18, 5));
+    expect(result.planEndTime).toEqual(new Date(2026, 10, 4, 19, 5));
+  });
+
+  it("never produces a window shorter than five minutes", () => {
+    const result = shiftStalePlanTimeRange(
+      { planStartTime: new Date(2026, 10, 4, 15, 35), planEndTime: new Date(2026, 10, 4, 15, 36) },
+      new Date(2026, 10, 4, 18, 2),
+    );
+    expect(result.planEndTime?.getTime() - result.planStartTime?.getTime()).toBe(5 * 60 * 1000);
+  });
+
+  it("leaves a memo without plan time alone", () => {
+    const result = shiftStalePlanTimeRange({}, new Date(2026, 10, 4, 18, 2));
+    expect(result.shifted).toBe(false);
+    expect(result.planStartTime).toBeUndefined();
+    expect(result.planEndTime).toBeUndefined();
+  });
+});
+
+describe("nextFiveMinuteMark", () => {
+  it("never returns a moment in the past", () => {
+    const now = new Date(2026, 10, 4, 18, 2, 30, 250);
+    const mark = nextFiveMinuteMark(now);
+    expect(mark.getTime()).toBeGreaterThanOrEqual(now.getTime());
+    expect(mark.getMinutes() % 5).toBe(0);
+    expect(mark.getSeconds()).toBe(0);
+  });
+
+  it("keeps an exact five-minute mark as it is", () => {
+    const now = new Date(2026, 10, 4, 18, 5, 0, 0);
+    expect(nextFiveMinuteMark(now)).toEqual(now);
   });
 });
